@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { tenantId, tenantWhere } from "@/lib/tenant";
 
 const contentSchema = z.object({
   type: z.enum(["info", "rutina", "dieta", "aviso"]),
@@ -19,7 +20,7 @@ const contentSchema = z.object({
 
 export async function createContent(formData: FormData) {
   const session = await requireSession();
-  const orgId = session.organizationId;
+  const orgId = tenantId(session);
   const parsed = contentSchema.safeParse({
     type: formData.get("type") || "info",
     title: formData.get("title"),
@@ -58,7 +59,7 @@ export async function createContent(formData: FormData) {
 export async function toggleContent(id: string) {
   const session = await requireSession();
   const item = await prisma.content.findFirst({
-    where: { id, organizationId: session.organizationId },
+    where: { id, ...tenantWhere(session) },
   });
   if (!item) throw new Error("Contenido no encontrado");
   await prisma.content.update({
@@ -72,7 +73,7 @@ export async function toggleContent(id: string) {
 export async function deleteContent(id: string) {
   const session = await requireSession();
   const result = await prisma.content.deleteMany({
-    where: { id, organizationId: session.organizationId },
+    where: { id, ...tenantWhere(session) },
   });
   if (result.count === 0) throw new Error("Contenido no encontrado");
   revalidatePath("/contenidos");

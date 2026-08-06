@@ -45,6 +45,11 @@ export async function getClientSession(): Promise<ClientSession | null> {
     return null;
   }
 
+  // JWT firmado, pero rechazamos desalineación org (sesión vieja / cliente movido).
+  if (session.organizationId !== client.organizationId) {
+    return null;
+  }
+
   return {
     id: client.id,
     documentId: client.documentId,
@@ -56,7 +61,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
 
 export async function requireClientSession(): Promise<ClientSession> {
   const session = await getClientSession();
-  if (session) return session;
+  if (session?.organizationId) return session;
 
   const jar = await cookies();
   if (jar.get(CLIENT_SESSION_COOKIE)?.value) {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireClientSession } from "@/lib/client-auth";
 import { countUnreadContents, visibleContentWhere } from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function ClientContentsPage({
   const [items, unreadTotal] = await Promise.all([
     prisma.content.findMany({
       where: {
-        organizationId: session.organizationId,
+        ...tenantWhere(session),
         ...visibleContentWhere(session.id),
         ...(typeFilter ? { type: typeFilter } : {}),
       },

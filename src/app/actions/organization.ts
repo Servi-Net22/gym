@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { normalizeOrgSlug } from "@/lib/company";
 import { prisma } from "@/lib/prisma";
+import { tenantId } from "@/lib/tenant";
 
 const orgSchema = z.object({
   name: z.string().trim().min(2, "Nombre requerido"),
@@ -42,10 +43,11 @@ export async function updateOrganizationAction(
   }
 
   const data = parsed.data;
+  const orgId = tenantId(session);
   const clash = await prisma.organization.findFirst({
     where: {
       slug: data.slug,
-      NOT: { id: session.organizationId },
+      NOT: { id: orgId },
     },
     select: { id: true },
   });
@@ -54,7 +56,7 @@ export async function updateOrganizationAction(
   }
 
   await prisma.organization.update({
-    where: { id: session.organizationId },
+    where: { id: orgId },
     data: {
       name: data.name,
       slug: data.slug,

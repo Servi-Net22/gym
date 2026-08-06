@@ -9,6 +9,7 @@ import {
 } from "@/components/Ui";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import { formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function PlanesPage() {
   const session = await requireSession();
   const plans = await prisma.plan.findMany({
-    where: { organizationId: session.organizationId },
+    where: tenantWhere(session),
     orderBy: { price: "asc" },
     include: { _count: { select: { clients: true } } },
   });

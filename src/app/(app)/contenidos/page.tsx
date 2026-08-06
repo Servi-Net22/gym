@@ -8,6 +8,7 @@ import {
 } from "@/components/Ui";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime, fullName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ const LABELS: Record<string, string> = {
 export default async function ContenidosPage() {
   const session = await requireSession();
   const items = await prisma.content.findMany({
-    where: { organizationId: session.organizationId },
+    where: tenantWhere(session),
     orderBy: { publishedAt: "desc" },
     include: {
       client: { select: { firstName: true, lastName: true } },

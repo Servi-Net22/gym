@@ -72,7 +72,7 @@ export async function getSession(): Promise<SessionUser | null> {
     }
   }
 
-  if (!org.active) {
+  if (!org?.id || !org.active) {
     return null;
   }
 
@@ -90,10 +90,11 @@ export async function getSession(): Promise<SessionUser | null> {
 
 export async function requireSession(): Promise<SessionUser> {
   const session = await getSession();
-  if (session) return session;
+  // Todo el staff opera bajo un tenant concreto (org home o “Entrar como…”).
+  if (session?.organizationId) return session;
 
   const jar = await cookies();
-  // Cookie presente pero usuario inexistente → limpiar en Route Handler
+  // Cookie presente pero usuario inexistente / sin org → limpiar en Route Handler
   if (jar.get(SESSION_COOKIE)?.value) {
     redirect("/api/auth/clear-session?next=/login");
   }

@@ -11,6 +11,9 @@ export async function countUnreadContents(
   clientId: string,
   organizationId: string,
 ) {
+  if (!organizationId) {
+    throw new Error("organizationId requerido para contenidos del portal");
+  }
   return prisma.content.count({
     where: {
       organizationId,

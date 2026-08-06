@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { requireClientSession } from "@/lib/client-auth";
 import { countUnreadContents } from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import { formatDate, isMembershipCurrent } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function ClientHomePage() {
   const session = await requireClientSession();
   const [client, unread] = await Promise.all([
     prisma.client.findFirstOrThrow({
-      where: { id: session.id, organizationId: session.organizationId },
+      where: { id: session.id, ...tenantWhere(session) },
       include: { plan: true },
     }),
     countUnreadContents(session.id, session.organizationId),

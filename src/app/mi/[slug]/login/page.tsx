@@ -28,7 +28,13 @@ export default async function ClientOrgLoginPage({
   if (!org) notFound();
 
   const session = await getClientSession();
-  if (session) redirect("/mi");
+  // Misma org → portal; otra org → no reutilizar sesión cross-tenant.
+  if (session?.organizationSlug === org.slug) redirect("/mi");
+  if (session && session.organizationSlug !== org.slug) {
+    redirect(
+      `/api/auth/clear-client-session?next=${encodeURIComponent(`/mi/${org.slug}/login`)}`,
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">

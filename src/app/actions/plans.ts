@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { tenantId, tenantWhere } from "@/lib/tenant";
 import { planSchema } from "@/lib/validations";
 
 export async function createPlan(formData: FormData) {
@@ -21,7 +22,7 @@ export async function createPlan(formData: FormData) {
   }
 
   await prisma.plan.create({
-    data: { ...parsed.data, organizationId: session.organizationId },
+    data: { ...parsed.data, organizationId: tenantId(session) },
   });
   revalidatePath("/planes");
   redirect("/planes");
@@ -42,7 +43,7 @@ export async function updatePlan(id: string, formData: FormData) {
   }
 
   const result = await prisma.plan.updateMany({
-    where: { id, organizationId: session.organizationId },
+    where: { id, ...tenantWhere(session) },
     data: parsed.data,
   });
   if (result.count === 0) throw new Error("Plan no encontrado");
@@ -53,7 +54,7 @@ export async function updatePlan(id: string, formData: FormData) {
 export async function togglePlan(id: string) {
   const session = await requireSession();
   const plan = await prisma.plan.findFirst({
-    where: { id, organizationId: session.organizationId },
+    where: { id, ...tenantWhere(session) },
   });
   if (!plan) throw new Error("Plan no encontrado");
   await prisma.plan.update({

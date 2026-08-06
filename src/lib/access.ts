@@ -15,10 +15,29 @@ export type AccessCheckResult = {
   openBarrier: boolean;
 };
 
+export type AccessScope = {
+  /** Obliga a que el QR pertenezca a este comercio (no filtra cross-tenant). */
+  organizationId: string;
+};
+
+/**
+ * Valida un QR de ingreso.
+ * Requiere organizationId para no filtrar datos de otro comercio.
+ */
 export async function validateAccessToken(
   qrToken: string,
+  scope: AccessScope,
 ): Promise<AccessCheckResult> {
   const token = qrToken.trim();
+  const organizationId = scope.organizationId;
+
+  if (!organizationId) {
+    return {
+      granted: false,
+      reason: "Comercio no especificado",
+      openBarrier: false,
+    };
+  }
 
   if (!token) {
     return {
@@ -28,14 +47,16 @@ export async function validateAccessToken(
     };
   }
 
-  const client = await prisma.client.findUnique({
-    where: { qrToken: token },
+  const client = await prisma.client.findFirst({
+    where: { qrToken: token, organizationId },
     include: { plan: true },
   });
 
   if (!client) {
+    // ¿Existe en otro comercio? No revelamos PII: mismo mensaje genérico.
     await prisma.accessLog.create({
       data: {
+        organizationId,
         qrToken: token,
         granted: false,
         reason: "QR no registrado",

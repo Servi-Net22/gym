@@ -10,6 +10,7 @@ import {
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isProtectedSuperadminEmail } from "@/lib/superadmin";
+import { tenantWhere } from "@/lib/tenant";
 import { formatCurrency, formatDate, fullName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function EmpleadosPage() {
   const session = await requireAdmin();
   const employees = await prisma.employee.findMany({
-    where: { organizationId: session.organizationId },
+    where: tenantWhere(session),
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     include: { user: { select: { email: true, active: true } } },
   });

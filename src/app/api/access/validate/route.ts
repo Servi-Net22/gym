@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openBarrierCommand, validateAccessToken } from "@/lib/access";
+import { normalizeOrgSlug } from "@/lib/company";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Endpoint para el lector / controlador de barrera.
  *
  * POST /api/access/validate
  * Headers: x-api-key: <BARRIER_API_KEY>
- * Body: { "qrToken": "GYM-..." }  o  { "token": "GYM-..." }
+ *          x-organization-slug: gymflow   (recomendado)
+ * Body: { "qrToken": "GYM-...", "organizationSlug": "gymflow" }
+ *
+ * Sin slug/id de comercio no se valida (evita filtrar clientes de otro tenant).
+ * En despliegues de un solo gym: BARRIER_ORGANIZATION_ID o BARRIER_ORGANIZATION_SLUG.
  */
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
@@ -19,7 +25,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { qrToken?: string; token?: string };
+  let body: {
+    qrToken?: string;
+    token?: string;
+    organizationId?: string;
+    organizationSlug?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -29,8 +40,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const organizationId = await resolveBarrierOrganizationId(request, body);
+  if (!organizationId) {
+    return NextResponse.json(
+      {
+        granted: false,
+        reason:
+          "Indicá el comercio (header x-organization-slug / body organizationSlug)",
+      },
+      { status: 400 },
+    );
+  }
+
   const qrToken = body.qrToken ?? body.token ?? "";
-  const result = await validateAccessToken(qrToken);
+  const result = await validateAccessToken(qrToken, { organizationId });
 
   let barrier = null;
   if (result.openBarrier && result.client) {
@@ -53,4 +76,37 @@ export async function POST(request: NextRequest) {
       : null,
     barrier,
   });
+}
+
+async function resolveBarrierOrganizationId(
+  request: NextRequest,
+  body: {
+    organizationId?: string;
+    organizationSlug?: string;
+  },
+): Promise<string | null> {
+  const headerId = request.headers.get("x-organization-id")?.trim();
+  const bodyId = body.organizationId?.trim();
+  const id = headerId || bodyId || process.env.BARRIER_ORGANIZATION_ID?.trim();
+  if (id) {
+    const org = await prisma.organization.findFirst({
+      where: { id, active: true },
+      select: { id: true },
+    });
+    return org?.id ?? null;
+  }
+
+  const headerSlug = request.headers.get("x-organization-slug");
+  const bodySlug = body.organizationSlug;
+  const envSlug = process.env.BARRIER_ORGANIZATION_SLUG;
+  const slug = normalizeOrgSlug(
+    String(headerSlug ?? bodySlug ?? envSlug ?? ""),
+  );
+  if (!slug) return null;
+
+  const org = await prisma.organization.findFirst({
+    where: { slug, active: true },
+    select: { id: true },
+  });
+  return org?.id ?? null;
 }

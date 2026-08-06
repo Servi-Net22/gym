@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 
 type ApplyInput = {
   clientId: string;
+  /** Si se pasa, el cliente debe pertenecer a este tenant. */
+  organizationId?: string;
   amount: number;
   method: "efectivo" | "transferencia" | "mercadopago";
   source: "manual" | "automatic";
@@ -37,8 +39,13 @@ export async function createPaymentRecord(input: ApplyInput) {
     registeredById = actor.id;
   }
 
-  const client = await prisma.client.findUnique({
-    where: { id: input.clientId },
+  const client = await prisma.client.findFirst({
+    where: {
+      id: input.clientId,
+      ...(input.organizationId
+        ? { organizationId: input.organizationId }
+        : {}),
+    },
     select: { id: true, organizationId: true },
   });
   if (!client) {

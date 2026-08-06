@@ -19,6 +19,7 @@ import {
   voidPaymentRecord,
 } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import { paymentSchema } from "@/lib/validations";
 
 function parsePaymentForm(formData: FormData) {
@@ -64,12 +65,13 @@ export async function registerManualPayment(formData: FormData) {
 
   const data = parsed.data;
   const client = await prisma.client.findFirst({
-    where: { id: data.clientId, organizationId: session.organizationId },
+    where: { id: data.clientId, ...tenantWhere(session) },
   });
   if (!client) throw new Error("Cliente no encontrado");
 
   const payment = await createPaymentRecord({
     clientId: data.clientId,
+    organizationId: session.organizationId,
     amount: data.amount,
     method: data.method,
     source: "manual",
@@ -105,7 +107,7 @@ export async function startAutomaticCharge(formData: FormData) {
 
   const data = parsed.data;
   const client = await prisma.client.findFirst({
-    where: { id: data.clientId, organizationId: session.organizationId },
+    where: { id: data.clientId, ...tenantWhere(session) },
     include: { plan: true },
   });
   if (!client) throw new Error("Cliente no encontrado");
@@ -115,6 +117,7 @@ export async function startAutomaticCharge(formData: FormData) {
   if (data.method === "efectivo") {
     const payment = await createPaymentRecord({
       clientId: data.clientId,
+      organizationId: session.organizationId,
       amount: data.amount,
       method: "efectivo",
       source: "automatic",
@@ -134,6 +137,7 @@ export async function startAutomaticCharge(formData: FormData) {
     const reference = transferReference(client.documentId);
     const payment = await createPaymentRecord({
       clientId: data.clientId,
+      organizationId: session.organizationId,
       amount: data.amount,
       method: "transferencia",
       source: "automatic",
@@ -164,6 +168,7 @@ export async function startAutomaticCharge(formData: FormData) {
   // Mercado Pago
   const draft = await createPaymentRecord({
     clientId: data.clientId,
+    organizationId: session.organizationId,
     amount: data.amount,
     method: "mercadopago",
     source: "automatic",
@@ -214,7 +219,7 @@ export async function startAutomaticCharge(formData: FormData) {
 export async function confirmPendingPayment(paymentId: string) {
   const session = await requireSession();
   const owned = await prisma.payment.findFirst({
-    where: { id: paymentId, organizationId: session.organizationId },
+    where: { id: paymentId, ...tenantWhere(session) },
     select: { id: true },
   });
   if (!owned) throw new Error("Pago no encontrado");
@@ -229,7 +234,7 @@ export async function confirmPendingPayment(paymentId: string) {
 export async function cancelPendingPayment(paymentId: string) {
   const session = await requireSession();
   const owned = await prisma.payment.findFirst({
-    where: { id: paymentId, organizationId: session.organizationId },
+    where: { id: paymentId, ...tenantWhere(session) },
     select: { id: true },
   });
   if (!owned) throw new Error("Pago no encontrado");
@@ -269,7 +274,7 @@ export async function voidPayment(formData: FormData) {
   }
 
   const owned = await prisma.payment.findFirst({
-    where: { id: paymentId, organizationId: session.organizationId },
+    where: { id: paymentId, ...tenantWhere(session) },
     select: { id: true },
   });
   if (!owned) throw new Error("Pago no encontrado");

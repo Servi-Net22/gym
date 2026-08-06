@@ -7,6 +7,7 @@ import {
 } from "@/lib/payment-methods";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import {
   formatCurrency,
   formatDate,
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
 export default async function PagosPage() {
   const session = await requireSession();
   const payments = await prisma.payment.findMany({
-    where: { organizationId: session.organizationId },
+    where: tenantWhere(session),
     orderBy: { createdAt: "desc" },
     include: {
       client: true,

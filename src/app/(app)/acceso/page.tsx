@@ -3,21 +3,22 @@ import { DataTable, PageHeader, Panel } from "@/components/Ui";
 import { AccessBadge } from "@/components/StatusBadge";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime, fullName, isMembershipCurrent } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccesoPage() {
   const session = await requireSession();
-  const orgId = session.organizationId;
+  const scope = tenantWhere(session);
   const [clients, logs] = await Promise.all([
     prisma.client.findMany({
-      where: { organizationId: orgId },
+      where: scope,
       orderBy: { lastName: "asc" },
       take: 12,
     }),
     prisma.accessLog.findMany({
-      where: { organizationId: orgId },
+      where: scope,
       take: 20,
       orderBy: { scannedAt: "desc" },
       include: { client: true },
@@ -48,7 +49,8 @@ export default async function AccesoPage() {
         <pre className="overflow-x-auto rounded-lg bg-[#14231a] p-4 text-xs text-emerald-100">
 {`POST /api/access/validate
 Header: x-api-key: ${process.env.BARRIER_API_KEY ?? "gym-barrier-dev-key"}
-Body: { "qrToken": "GYM-..." }
+Header: x-organization-slug: ${session.organizationSlug || "tu-gym"}
+Body: { "qrToken": "GYM-...", "organizationSlug": "${session.organizationSlug || "tu-gym"}" }
 
 Respuesta OK:
 { "granted": true, "reason": "...", "barrier": { "ok": true } }`}

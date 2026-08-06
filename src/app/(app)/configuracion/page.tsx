@@ -3,13 +3,15 @@ import { PageHeader, Panel } from "@/components/Ui";
 import { requireAdmin } from "@/lib/auth";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { prisma } from "@/lib/prisma";
+import { tenantId } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConfiguracionPage() {
   const session = await requireAdmin();
+  // Solo la org de la sesión (ADMIN no puede editar otro comercio).
   const org = await prisma.organization.findUniqueOrThrow({
-    where: { id: session.organizationId },
+    where: { id: tenantId(session) },
   });
   const base = await getAppBaseUrl();
   const portalUrl = `${base}/mi/${org.slug}/login`;

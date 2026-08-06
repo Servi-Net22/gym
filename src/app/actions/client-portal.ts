@@ -17,6 +17,7 @@ import {
 import { normalizeOrgSlug } from "@/lib/company";
 import { sessionCookieOptions } from "@/lib/cookie-options";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 
 export type ClientLoginState = { error?: string };
 
@@ -94,7 +95,7 @@ export async function markContentReadAction(contentId: string) {
   const content = await prisma.content.findFirst({
     where: {
       id: contentId,
-      organizationId: session.organizationId,
+      ...tenantWhere(session),
       ...visibleContentWhere(session.id),
     },
     select: { id: true, organizationId: true },

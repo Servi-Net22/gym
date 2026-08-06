@@ -8,12 +8,13 @@ import { requireSession } from "@/lib/auth";
 import { generatePortalPin } from "@/lib/client-auth";
 import { emailNewClient } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { tenantId } from "@/lib/tenant";
 import { generateQrToken } from "@/lib/utils";
 import { clientSchema } from "@/lib/validations";
 
 export async function createClient(formData: FormData) {
   const session = await requireSession();
-  const orgId = session.organizationId;
+  const orgId = tenantId(session);
   const parsed = clientSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),

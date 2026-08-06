@@ -60,10 +60,18 @@ export async function proxy(request: NextRequest) {
   const staffToken = request.cookies.get(SESSION_COOKIE)?.value;
   const staffSession = staffToken ? await readSessionToken(staffToken) : null;
 
-  if (!staffSession) {
+  if (!staffSession?.organizationId) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Comercios: solo SUPERADMIN (ADMIN/EMPLOYEE no listan otros tenants).
+  if (
+    (pathname === "/organizaciones" || pathname.startsWith("/organizaciones/")) &&
+    staffSession.role !== "SUPERADMIN"
+  ) {
+    return NextResponse.redirect(new URL("/?error=sin-permiso", request.url));
   }
 
   return NextResponse.next();

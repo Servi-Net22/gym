@@ -4,6 +4,7 @@ import { MarkContentRead } from "@/components/MarkContentRead";
 import { requireClientSession } from "@/lib/client-auth";
 import { visibleContentWhere } from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
+import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export default async function ClientContentDetailPage({
   const item = await prisma.content.findFirst({
     where: {
       id,
-      organizationId: session.organizationId,
+      ...tenantWhere(session),
       ...visibleContentWhere(session.id),
     },
     include: {
