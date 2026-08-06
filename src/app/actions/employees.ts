@@ -6,6 +6,10 @@ import { getAppBaseUrl } from "@/lib/app-url";
 import { hashPassword, requireAdmin } from "@/lib/auth";
 import { emailEmployeeCredentials } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import {
+  assertMutableStaffUser,
+  isProtectedSuperadminEmail,
+} from "@/lib/superadmin";
 import { employeeSchema } from "@/lib/validations";
 
 function parseEmployeeForm(formData: FormData) {
@@ -45,6 +49,11 @@ export async function createEmployee(formData: FormData) {
 
   if (!loginEmail) {
     throw new Error("Se necesita un email para crear el usuario de acceso");
+  }
+  if (isProtectedSuperadminEmail(loginEmail)) {
+    throw new Error(
+      "Ese email está reservado para el sysadmin de plataforma.",
+    );
   }
 
   const existingUser = await prisma.user.findUnique({
@@ -94,20 +103,57 @@ export async function updateEmployee(id: string, formData: FormData) {
 
   const existing = await prisma.employee.findFirst({
     where: { id, organizationId: orgId },
-    select: { id: true },
+    include: { user: { select: { id: true, email: true, role: true } } },
   });
   if (!existing) throw new Error("Empleado no encontrado");
 
   const data = parsed.data;
   const loginPassword = String(formData.get("loginPassword") || "").trim();
+  const protectedAccount =
+    isProtectedSuperadminEmail(existing.user?.email) ||
+    isProtectedSuperadminEmail(existing.email);
+
+  if (protectedAccount) {
+    if (data.active === false) {
+      assertMutableStaffUser(existing.user?.email ?? existing.email);
+    }
+    if (
+      data.email &&
+      existing.user?.email &&
+      data.email.toLowerCase() !== existing.user.email.toLowerCase()
+    ) {
+      throw new Error(
+        "No se puede cambiar el email de la cuenta de sysadmin protegida.",
+      );
+    }
+  }
 
   await prisma.$transaction(async (tx) => {
-    const employee = await tx.employee.update({ where: { id }, data });
+    const employeeData = protectedAccount ? { ...data, active: true } : data;
+    const employee = await tx.employee.update({
+      where: { id },
+      data: employeeData,
+    });
 
     const linked = await tx.user.findUnique({ where: { employeeId: id } });
     if (linked) {
       if (linked.organizationId !== orgId) {
         throw new Error("Empleado no encontrado");
+      }
+      if (isProtectedSuperadminEmail(linked.email)) {
+        await tx.user.update({
+          where: { id: linked.id },
+          data: {
+            name: `${employee.firstName} ${employee.lastName}`,
+            active: true,
+            role: "SUPERADMIN",
+            email: linked.email,
+            ...(loginPassword
+              ? { passwordHash: await hashPassword(loginPassword) }
+              : {}),
+          },
+        });
+        return;
       }
       await tx.user.update({
         where: { id: linked.id },
@@ -134,8 +180,12 @@ export async function toggleEmployee(id: string) {
   const session = await requireAdmin();
   const employee = await prisma.employee.findFirst({
     where: { id, organizationId: session.organizationId },
+    include: { user: { select: { email: true } } },
   });
   if (!employee) throw new Error("Empleado no encontrado");
+
+  assertMutableStaffUser(employee.user?.email ?? employee.email);
+
   const active = !employee.active;
 
   await prisma.$transaction(async (tx) => {

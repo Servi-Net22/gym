@@ -9,6 +9,7 @@ import {
 } from "@/components/Ui";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isProtectedSuperadminEmail } from "@/lib/superadmin";
 import { formatCurrency, formatDate, fullName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,11 @@ export default async function EmpleadosPage() {
           "",
         ]}
       >
-        {employees.map((employee) => (
+        {employees.map((employee) => {
+          const protectedUser = isProtectedSuperadminEmail(
+            employee.user?.email ?? employee.email,
+          );
+          return (
           <tr key={employee.id} className="hover:bg-[var(--accent-soft)]/40">
             <td className="px-4 py-3 font-medium">
               {fullName(employee.firstName, employee.lastName)}
@@ -57,6 +62,11 @@ export default async function EmpleadosPage() {
             </td>
             <td className="px-4 py-3 text-[var(--muted)]">
               {employee.user?.email ?? employee.email ?? "Sin usuario"}
+              {protectedUser ? (
+                <span className="mt-0.5 block text-xs text-[var(--ink)]">
+                  Sysadmin protegido
+                </span>
+              ) : null}
             </td>
             <td className="px-4 py-3">{formatDate(employee.hireDate)}</td>
             <td className="px-4 py-3">
@@ -76,15 +86,20 @@ export default async function EmpleadosPage() {
                 >
                   Editar
                 </Link>
-                <form action={toggleEmployee.bind(null, employee.id)}>
-                  <SubmitButton variant="ghost">
-                    {employee.active ? "Baja" : "Alta"}
-                  </SubmitButton>
-                </form>
+                {protectedUser ? (
+                  <span className="text-xs text-[var(--muted)]">Sin baja</span>
+                ) : (
+                  <form action={toggleEmployee.bind(null, employee.id)}>
+                    <SubmitButton variant="ghost">
+                      {employee.active ? "Baja" : "Alta"}
+                    </SubmitButton>
+                  </form>
+                )}
               </div>
             </td>
           </tr>
-        ))}
+          );
+        })}
       </DataTable>
     </div>
   );

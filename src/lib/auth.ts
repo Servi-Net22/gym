@@ -51,7 +51,28 @@ export async function getSession(): Promise<SessionUser | null> {
 
   // No borrar cookies acá: getSession corre en Server Components (layout).
   // Si el usuario ya no existe, devolvemos null y el proxy/layout mandan a login.
-  if (!user || !user.active || !user.organization.active) {
+  if (!user || !user.active) {
+    return null;
+  }
+
+  // SUPERADMIN puede operar en otro comercio vía sesión ("Entrar como…")
+  // sin perder el rol ni mover su org home en DB.
+  let org = user.organization;
+  if (
+    user.role === "SUPERADMIN" &&
+    session.organizationId &&
+    session.organizationId !== user.organizationId
+  ) {
+    const acting = await prisma.organization.findFirst({
+      where: { id: session.organizationId, active: true },
+      select: { id: true, name: true, slug: true, active: true },
+    });
+    if (acting) {
+      org = acting;
+    }
+  }
+
+  if (!org.active) {
     return null;
   }
 
@@ -61,9 +82,9 @@ export async function getSession(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role,
     employeeId: user.employeeId,
-    organizationId: user.organization.id,
-    organizationName: user.organization.name,
-    organizationSlug: user.organization.slug,
+    organizationId: org.id,
+    organizationName: org.name,
+    organizationSlug: org.slug,
   };
 }
 

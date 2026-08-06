@@ -1,13 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { hashPassword, requireSuperAdmin } from "@/lib/auth";
+import {
+  SESSION_COOKIE,
+  createSessionToken,
+  hashPassword,
+  requireSuperAdmin,
+} from "@/lib/auth";
+import { sessionCookieOptions } from "@/lib/cookie-options";
 import { normalizeOrgSlug } from "@/lib/company";
 import { emailOrgAdminCredentials } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { isProtectedSuperadminEmail } from "@/lib/superadmin";
 
 const orgFieldsSchema = z.object({
   name: z.string().trim().min(2, "Nombre requerido"),
@@ -79,6 +87,12 @@ export async function createOrganizationAction(
   });
   if (slugTaken) {
     return { error: "Ese slug ya está en uso" };
+  }
+
+  if (isProtectedSuperadminEmail(data.adminEmail)) {
+    return {
+      error: "Ese email está reservado para el sysadmin de plataforma.",
+    };
   }
 
   const emailTaken = await prisma.user.findUnique({
@@ -182,4 +196,33 @@ export async function updateOrganizationByIdAction(
   revalidatePath(`/organizaciones/${id}/editar`);
   revalidatePath("/configuracion");
   return { ok: true };
+}
+
+/** SUPERADMIN: opera el panel con el tenant del comercio, sin cambiar el rol. */
+export async function enterOrganizationAsSuperAdmin(organizationId: string) {
+  const session = await requireSuperAdmin();
+  const org = await prisma.organization.findFirst({
+    where: { id: organizationId, active: true },
+    select: { id: true, name: true, slug: true },
+  });
+  if (!org) {
+    throw new Error("Comercio no encontrado o inactivo");
+  }
+
+  const token = await createSessionToken({
+    id: session.id,
+    email: session.email,
+    name: session.name,
+    role: session.role,
+    employeeId: session.employeeId,
+    organizationId: org.id,
+    organizationName: org.name,
+    organizationSlug: org.slug,
+  });
+
+  const jar = await cookies();
+  jar.set(SESSION_COOKIE, token, await sessionCookieOptions(60 * 60 * 8));
+
+  revalidatePath("/", "layout");
+  redirect("/");
 }

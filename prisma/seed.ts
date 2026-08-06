@@ -3,6 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
+import { PROTECTED_SUPERADMIN_EMAIL } from "../src/lib/superadmin";
 
 const connectionString =
   process.env.DIRECT_URL || process.env.DATABASE_URL;
@@ -16,6 +17,17 @@ const prisma = new PrismaClient({
 
 function token() {
   return `GYM-${randomBytes(16).toString("hex").toUpperCase()}`;
+}
+
+function resolveSuperadminPassword(): { password: string; generated: boolean } {
+  const fromEnv = process.env.SUPERADMIN_PASSWORD?.trim();
+  if (fromEnv && fromEnv.length >= 8) {
+    return { password: fromEnv, generated: false };
+  }
+  return {
+    password: randomBytes(18).toString("base64url"),
+    generated: true,
+  };
 }
 
 async function main() {
@@ -53,14 +65,29 @@ async function main() {
   const passwordEmployee = await bcrypt.hash("empleado123", 10);
   const portalPinHash = await bcrypt.hash("1234", 10);
 
-  // SUPERADMIN de plataforma (gestiona /organizaciones). Sigue anclado a la org demo.
+  const superCreds = resolveSuperadminPassword();
+  const passwordSuper = await bcrypt.hash(superCreds.password, 10);
+
+  // Único SUPERADMIN de plataforma (protegido). Anclado a la org demo.
+  const superadmin = await prisma.user.create({
+    data: {
+      organizationId: org.id,
+      email: PROTECTED_SUPERADMIN_EMAIL,
+      passwordHash: passwordSuper,
+      name: "Cristian Sysadmin",
+      role: "SUPERADMIN",
+      active: true,
+    },
+  });
+
+  // Admin de la org demo (ya no es SUPERADMIN).
   const admin = await prisma.user.create({
     data: {
       organizationId: org.id,
       email: "admin@gymflow.local",
       passwordHash: passwordAdmin,
-      name: "Administrador plataforma",
-      role: "SUPERADMIN",
+      name: "Administrador GymFlow",
+      role: "ADMIN",
     },
   });
 
@@ -269,7 +296,18 @@ async function main() {
 
   console.log("Seed listo.");
   console.log(`  Org:         ${org.name} (slug: ${org.slug})`);
-  console.log("  Superadmin:  admin@gymflow.local / admin123  → /organizaciones");
+  console.log(
+    `  Superadmin:  ${PROTECTED_SUPERADMIN_EMAIL} / ${superCreds.password}  → /organizaciones`,
+  );
+  if (superCreds.generated) {
+    console.log(
+      "  (contraseña SUPERADMIN generada; guardala ahora — no está en el repo)",
+    );
+  } else {
+    console.log("  (contraseña SUPERADMIN desde env SUPERADMIN_PASSWORD)");
+  }
+  console.log(`  Superadmin id: ${superadmin.id}`);
+  console.log("  Admin org:   admin@gymflow.local / admin123");
   console.log("  Empleado:    sofia@gymflow.local / empleado123");
   console.log(
     `  Cliente PWA: DNI 30111222 / PIN 1234 → /mi/${org.slug}/login`,

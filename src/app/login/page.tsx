@@ -25,7 +25,7 @@ export default async function LoginPage() {
           <LoginForm />
         </div>
         <div className="mt-6 rounded-lg bg-[var(--panel)] p-3 text-xs text-[var(--muted)]">
-          <p className="font-semibold text-[var(--ink)]">Demo</p>
+          <p className="font-semibold text-[var(--ink)]">Demo (org GymFlow)</p>
           <p>Admin: admin@gymflow.local / admin123</p>
           <p>Empleado: sofia@gymflow.local / empleado123</p>
         </div>

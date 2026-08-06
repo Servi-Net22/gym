@@ -85,6 +85,7 @@ export function Field({
   placeholder,
   step,
   min,
+  readOnly,
 }: {
   label: string;
   name: string;
@@ -94,6 +95,7 @@ export function Field({
   placeholder?: string;
   step?: string;
   min?: string;
+  readOnly?: boolean;
 }) {
   return (
     <label className="block space-y-1.5">
@@ -105,8 +107,9 @@ export function Field({
         placeholder={placeholder}
         step={step}
         min={min}
+        readOnly={readOnly}
         defaultValue={defaultValue ?? undefined}
-        className="w-full rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none ring-[var(--accent)] focus:ring-2"
+        className="w-full rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none ring-[var(--accent)] focus:ring-2 read-only:bg-[var(--panel)]"
       />
     </label>
   );

@@ -12,6 +12,7 @@ import {
 } from "@/components/Ui";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isProtectedSuperadminEmail } from "@/lib/superadmin";
 import { formatCurrency, fullName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,9 @@ export default async function EditarEmpleadoPage({
 
   const action = updateEmployee.bind(null, employee.id);
   const hire = employee.hireDate.toISOString().slice(0, 10);
+  const protectedUser = isProtectedSuperadminEmail(
+    employee.user?.email ?? employee.email,
+  );
 
   return (
     <div>
@@ -45,6 +49,12 @@ export default async function EditarEmpleadoPage({
       />
       <Panel className="max-w-3xl">
         <form action={action} className="space-y-5">
+          {protectedUser ? (
+            <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              Cuenta de sysadmin protegida: no se puede dar de baja ni cambiar
+              el email/rol de plataforma.
+            </p>
+          ) : null}
           <FormGrid>
             <Field
               label="Nombre"
@@ -81,6 +91,7 @@ export default async function EditarEmpleadoPage({
               type="email"
               required
               defaultValue={employee.email}
+              readOnly={protectedUser}
             />
             <Field
               label="Sueldo bruto de referencia"
@@ -130,11 +141,20 @@ export default async function EditarEmpleadoPage({
             name="notes"
             defaultValue={employee.notes}
           />
-          <CheckboxField
-            label="Empleado activo"
-            name="active"
-            defaultChecked={employee.active}
-          />
+          {protectedUser ? (
+            <>
+              <input type="hidden" name="active" value="on" />
+              <p className="text-sm text-[var(--muted)]">
+                Estado: siempre activo (cuenta protegida).
+              </p>
+            </>
+          ) : (
+            <CheckboxField
+              label="Empleado activo"
+              name="active"
+              defaultChecked={employee.active}
+            />
+          )}
           <div className="rounded-lg bg-[var(--panel)] px-3 py-2 text-xs text-[var(--muted)]">
             <p>
               Usuario de acceso:{" "}
