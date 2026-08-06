@@ -35,8 +35,8 @@ a {
 
 @media print {
   @page {
-    size: A4;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 6mm;
   }
 
   html,
@@ -44,6 +44,8 @@ a {
     background: #fff !important;
     color: #000 !important;
     min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   body {
@@ -63,25 +65,138 @@ a {
     overflow: visible !important;
   }
 
+  /*
+   * zoom reduce tamaño de layout (Chrome/Edge) y evita página 2 en blanco
+   * que deja transform:scale() al no contraer el flujo.
+   */
+  .receipt-print-fit {
+    zoom: 0.86;
+  }
+
   .receipt-doc {
     box-shadow: none !important;
     border-radius: 0 !important;
-    break-inside: auto;
-    page-break-inside: auto;
+    border-width: 1px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    page-break-after: avoid;
+    break-after: avoid;
     max-width: 100% !important;
+    font-size: 8.5px !important;
+    line-height: 1.25 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  .receipt-doc img {
-    max-height: 96px !important;
+  .receipt-doc .receipt-disclaimer {
+    padding: 2px 6px !important;
+    font-size: 7px !important;
+    line-height: 1.2 !important;
   }
 
-  .receipt-block,
-  .receipt-neto-bar,
+  .receipt-doc .receipt-body {
+    padding: 4px 4px 6px !important;
+    gap: 4px !important;
+  }
+
+  .receipt-doc .receipt-body > * + * {
+    margin-top: 0 !important;
+  }
+
+  .receipt-header-table th,
+  .receipt-header-table td {
+    padding: 2px 4px !important;
+  }
+
+  .receipt-header-table .receipt-th th,
+  .receipt-th th {
+    font-size: 7px !important;
+    padding: 2px 3px !important;
+  }
+
+  .receipt-block-title {
+    padding: 3px 5px !important;
+    font-size: 8.5px !important;
+  }
+
+  .receipt-table th,
+  .receipt-table td {
+    padding: 1.5px 4px !important;
+  }
+
+  .receipt-table thead th {
+    font-size: 7px !important;
+  }
+
   .receipt-comp-bar {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    gap: 4px 10px !important;
+    padding: 3px 5px !important;
+    font-size: 8px !important;
+  }
+
+  .receipt-neto-bar {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    border-width: 1.5px !important;
+  }
+
+  .receipt-meta,
+  .receipt-note,
+  .receipt-costo-line {
+    font-size: 7.5px !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    padding: 2px 4px !important;
+  }
+
+  .receipt-bottom-grid {
+    gap: 4px !important;
+  }
+
+  .receipt-pie {
+    padding: 4px !important;
+  }
+
+  .receipt-pie-title {
+    margin: 0 0 2px !important;
+    font-size: 8px !important;
+  }
+
+  .receipt-pie-body {
+    gap: 6px !important;
+  }
+
+  .receipt-pie-svg {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .receipt-pie-legend {
+    font-size: 7.5px !important;
+  }
+
+  .receipt-pie-legend li {
+    margin: 0 !important;
+    gap: 4px !important;
+  }
+
+  .receipt-sign {
+    padding: 4px 6px !important;
+  }
+
+  .receipt-sign-title {
+    margin-bottom: 2px !important;
+    font-size: 8px !important;
+  }
+
+  .receipt-doc img,
+  .receipt-sign img {
+    max-height: 48px !important;
+  }
+
+  .receipt-doc footer {
+    padding: 2px 6px !important;
+    font-size: 7px !important;
   }
 }
 
