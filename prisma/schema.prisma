@@ -127,6 +127,8 @@ model ContentRead {
 enum UserRole {
   ADMIN
   EMPLOYEE
+  /// Plataforma: gestiona comercios (organizations) sin romper el tenant del staff
+  SUPERADMIN
 }
 
 model User {

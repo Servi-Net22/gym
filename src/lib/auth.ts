@@ -81,12 +81,24 @@ export async function requireSession(): Promise<SessionUser> {
 
 export async function requireAdmin(): Promise<SessionUser> {
   const session = await requireSession();
-  if (session.role !== "ADMIN") {
+  if (session.role !== "ADMIN" && session.role !== "SUPERADMIN") {
+    redirect("/?error=sin-permiso");
+  }
+  return session;
+}
+
+export async function requireSuperAdmin(): Promise<SessionUser> {
+  const session = await requireSession();
+  if (session.role !== "SUPERADMIN") {
     redirect("/?error=sin-permiso");
   }
   return session;
 }
 
 export function canViewSalaries(user: SessionUser | null | undefined) {
-  return user?.role === "ADMIN";
+  return user?.role === "ADMIN" || user?.role === "SUPERADMIN";
+}
+
+export function isSuperAdmin(user: SessionUser | null | undefined) {
+  return user?.role === "SUPERADMIN";
 }

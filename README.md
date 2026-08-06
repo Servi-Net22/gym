@@ -31,16 +31,29 @@ npm run dev
 
 | Rol | Email | Contraseña |
 |-----|-------|------------|
-| Admin | `admin@gymflow.local` | `admin123` |
+| Superadmin (plataforma) | `admin@gymflow.local` | `admin123` |
 | Empleado | `sofia@gymflow.local` | `empleado123` |
+
+El seed crea `admin@gymflow.local` como **SUPERADMIN**. Desde el panel → **Comercios** (`/organizaciones`) podés dar de alta nuevos gimnasios y su primer ADMIN. En deploys ya migrados sin re-seed, la migración `20260806194600_promote_platform_superadmin` promueve ese email si existe.
+
+### Multi-tenant (comercios)
+
+- Cada organización tiene `slug` único.
+- Portal clientes: `/mi/{slug}/login` (ej. `/mi/gymflow/login`).
+- Staff del comercio inicia sesión en `/login` (email global único).
+- Solo SUPERADMIN ve y gestiona `/organizaciones`. El ADMIN de un comercio edita solo su tenant en **Configuración**.
 
 ### Permisos
 
-| Acción | Admin | Empleado |
-|--------|-------|----------|
-| Empleados / sueldos | Sí | No |
-| Clientes, planes, pagos, barrera | Sí | Sí |
-| Anular pagos | Sí | No |
+| Acción | Superadmin | Admin | Empleado |
+|--------|------------|-------|----------|
+| Comercios (`/organizaciones`) | Sí | No | No |
+| Empleados / sueldos | Sí* | Sí | No |
+| Clientes, planes, pagos, barrera | Sí* | Sí | Sí |
+| Anular pagos | Sí* | Sí | No |
+| Configuración del propio comercio | Sí* | Sí | No |
+
+\*El superadmin opera sobre la org a la que está anclado (por defecto la demo `gymflow`); no ve datos de otros tenants en esas pantallas.
 
 ## Módulos
 

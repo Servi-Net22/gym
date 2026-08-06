@@ -2,16 +2,25 @@ import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE = "gymflow_session";
 
+export type StaffRole = "ADMIN" | "EMPLOYEE" | "SUPERADMIN";
+
 export type SessionUser = {
   id: string;
   email: string;
   name: string;
-  role: "ADMIN" | "EMPLOYEE";
+  role: StaffRole;
   employeeId: string | null;
   organizationId: string;
   organizationName: string;
   organizationSlug: string;
 };
+
+function parseStaffRole(value: unknown): StaffRole {
+  if (value === "ADMIN" || value === "SUPERADMIN" || value === "EMPLOYEE") {
+    return value;
+  }
+  return "EMPLOYEE";
+}
 
 const SESSION_TTL = "8h";
 
@@ -51,7 +60,7 @@ export async function readSessionToken(
       id: payload.sub,
       email: payload.email,
       name: String(payload.name ?? ""),
-      role: payload.role === "ADMIN" ? "ADMIN" : "EMPLOYEE",
+      role: parseStaffRole(payload.role),
       employeeId:
         typeof payload.employeeId === "string" ? payload.employeeId : null,
       organizationId: payload.organizationId,

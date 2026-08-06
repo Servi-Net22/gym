@@ -209,6 +209,31 @@ export async function emailEmployeeCredentials(input: {
   });
 }
 
+export async function emailOrgAdminCredentials(input: {
+  to: string;
+  name: string;
+  password: string;
+  orgName: string;
+  appUrl: string;
+  portalUrl: string;
+}) {
+  await sendEmail({
+    to: input.to,
+    subject: `Acceso administrador — ${input.orgName}`,
+    html: `
+      <p>Hola ${input.name},</p>
+      <p>Se creó tu comercio <strong>${input.orgName}</strong> en GymFlow.</p>
+      <ul>
+        <li><strong>Panel staff:</strong> <a href="${input.appUrl}/login">${input.appUrl}/login</a></li>
+        <li><strong>Email:</strong> ${input.to}</li>
+        <li><strong>Contraseña temporal:</strong> ${input.password}</li>
+        <li><strong>Portal clientes:</strong> <a href="${input.portalUrl}">${input.portalUrl}</a></li>
+      </ul>
+      <p>Ingresá al panel y cambiá la contraseña si es necesario.</p>
+    `,
+  });
+}
+
 export async function emailEmployeeReceipt(input: {
   to: string;
   employeeName: string;

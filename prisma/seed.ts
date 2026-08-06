@@ -53,13 +53,14 @@ async function main() {
   const passwordEmployee = await bcrypt.hash("empleado123", 10);
   const portalPinHash = await bcrypt.hash("1234", 10);
 
+  // SUPERADMIN de plataforma (gestiona /organizaciones). Sigue anclado a la org demo.
   const admin = await prisma.user.create({
     data: {
       organizationId: org.id,
       email: "admin@gymflow.local",
       passwordHash: passwordAdmin,
-      name: "Administrador",
-      role: "ADMIN",
+      name: "Administrador plataforma",
+      role: "SUPERADMIN",
     },
   });
 
@@ -267,9 +268,9 @@ async function main() {
   });
 
   console.log("Seed listo.");
-  console.log(`  Org:      ${org.name} (slug: ${org.slug})`);
-  console.log("  Admin:    admin@gymflow.local / admin123");
-  console.log("  Empleado: sofia@gymflow.local / empleado123");
+  console.log(`  Org:         ${org.name} (slug: ${org.slug})`);
+  console.log("  Superadmin:  admin@gymflow.local / admin123  → /organizaciones");
+  console.log("  Empleado:    sofia@gymflow.local / empleado123");
   console.log(
     `  Cliente PWA: DNI 30111222 / PIN 1234 → /mi/${org.slug}/login`,
   );

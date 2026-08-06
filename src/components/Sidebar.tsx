@@ -11,15 +11,50 @@ const links: {
   label: string;
   roles: Array<SessionUser["role"]>;
 }[] = [
-  { href: "/", label: "Panel", roles: ["ADMIN", "EMPLOYEE"] },
-  { href: "/clientes", label: "Clientes", roles: ["ADMIN", "EMPLOYEE"] },
-  { href: "/empleados", label: "Empleados", roles: ["ADMIN"] },
-  { href: "/planes", label: "Planes", roles: ["ADMIN", "EMPLOYEE"] },
-  { href: "/pagos", label: "Pagos", roles: ["ADMIN", "EMPLOYEE"] },
-  { href: "/contenidos", label: "Contenidos PWA", roles: ["ADMIN", "EMPLOYEE"] },
-  { href: "/acceso", label: "Acceso / Barrera", roles: ["ADMIN", "EMPLOYEE"] },
-  { href: "/configuracion", label: "Configuración", roles: ["ADMIN"] },
+  { href: "/", label: "Panel", roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"] },
+  {
+    href: "/organizaciones",
+    label: "Comercios",
+    roles: ["SUPERADMIN"],
+  },
+  {
+    href: "/clientes",
+    label: "Clientes",
+    roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+  },
+  { href: "/empleados", label: "Empleados", roles: ["ADMIN", "SUPERADMIN"] },
+  {
+    href: "/planes",
+    label: "Planes",
+    roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+  },
+  {
+    href: "/pagos",
+    label: "Pagos",
+    roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+  },
+  {
+    href: "/contenidos",
+    label: "Contenidos PWA",
+    roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+  },
+  {
+    href: "/acceso",
+    label: "Acceso / Barrera",
+    roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+  },
+  {
+    href: "/configuracion",
+    label: "Configuración",
+    roles: ["ADMIN", "SUPERADMIN"],
+  },
 ];
+
+function roleLabel(role: SessionUser["role"]) {
+  if (role === "SUPERADMIN") return "Superadmin";
+  if (role === "ADMIN") return "Administrador";
+  return "Empleado";
+}
 
 export function Sidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
@@ -66,7 +101,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
         <div>
           <p className="text-sm font-semibold text-[var(--ink)]">{user.name}</p>
           <p className="text-xs text-[var(--muted)]">
-            {user.role === "ADMIN" ? "Administrador" : "Empleado"} · {user.email}
+            {roleLabel(user.role)} · {user.email}
           </p>
         </div>
         <form action={logoutAction}>
