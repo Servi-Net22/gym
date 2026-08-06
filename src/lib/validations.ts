@@ -64,6 +64,9 @@ export const employeeSchema = z.object({
     .optional()
     .transform((v) => (v ? new Date(v) : new Date())),
   address: optionalString,
+  cuil: optionalString,
+  legajo: optionalString,
+  categoriaLaboral: optionalString,
   notes: optionalString,
   active: z.coerce.boolean().optional().default(true),
 });

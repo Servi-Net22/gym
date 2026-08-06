@@ -38,7 +38,7 @@ export default function NuevoEmpleadoPage() {
               required
             />
             <Field
-              label="Sueldo"
+              label="Sueldo bruto de referencia"
               name="salary"
               type="number"
               step="1000"
@@ -49,6 +49,17 @@ export default function NuevoEmpleadoPage() {
               name="hireDate"
               type="date"
               defaultValue={today}
+            />
+            <Field
+              label="CUIL"
+              name="cuil"
+              placeholder="20-12345678-9"
+            />
+            <Field label="Nº legajo" name="legajo" />
+            <Field
+              label="Categoría laboral"
+              name="categoriaLaboral"
+              placeholder="Si vacío, se usa el cargo"
             />
             <Field label="Dirección" name="address" />
             <Field

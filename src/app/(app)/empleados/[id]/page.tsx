@@ -79,6 +79,18 @@ export default async function EmpleadoDetailPage({
             <span className="text-[var(--muted)]">Ingreso: </span>
             <strong>{formatDate(employee.hireDate)}</strong>
           </p>
+          <p>
+            <span className="text-[var(--muted)]">CUIL: </span>
+            <strong>{employee.cuil ?? "—"}</strong>
+          </p>
+          <p>
+            <span className="text-[var(--muted)]">Legajo: </span>
+            <strong>{employee.legajo ?? "—"}</strong>
+          </p>
+          <p>
+            <span className="text-[var(--muted)]">Categoría: </span>
+            <strong>{employee.categoriaLaboral ?? employee.role}</strong>
+          </p>
         </div>
       </Panel>
 
@@ -97,7 +109,8 @@ export default async function EmpleadoDetailPage({
             headers={[
               "Período",
               "Pago",
-              "Monto",
+              "Bruto",
+              "Neto",
               "Medio",
               "Estado",
               "Firma",
@@ -111,6 +124,9 @@ export default async function EmpleadoDetailPage({
                   {formatDate(r.periodFrom)} → {formatDate(r.periodTo)}
                 </td>
                 <td className="px-4 py-3 text-sm">{formatDate(r.paidAt)}</td>
+                <td className="px-4 py-3 text-sm">
+                  {formatCurrency(r.sueldoBruto)}
+                </td>
                 <td className="px-4 py-3 text-sm font-medium">
                   {formatCurrency(r.amount)}
                 </td>

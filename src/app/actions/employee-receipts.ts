@@ -10,12 +10,22 @@ import {
   generateReceiptViewToken,
   receiptHtml,
 } from "@/lib/employee-receipts";
+import { buildPayrollFromBruto } from "@/lib/payroll-receipt";
 import { emailEmployeeReceipt } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 const createSchema = z.object({
-  amount: z.coerce.number().positive("Monto inválido"),
+  sueldoBruto: z.coerce.number().positive("Sueldo bruto inválido"),
   method: z.enum(["efectivo", "transferencia"]),
+  quincena: z
+    .enum(["", "1", "2", "mensual"])
+    .optional()
+    .transform((v) => {
+      if (v === "1") return 1;
+      if (v === "2") return 2;
+      return null;
+    }),
   periodFrom: z.string().min(1),
   periodTo: z.string().min(1),
   paidAt: z.string().min(1),
@@ -64,8 +74,9 @@ export async function createEmployeeReceipt(employeeId: string, formData: FormDa
   });
 
   const parsed = createSchema.safeParse({
-    amount: formData.get("amount"),
+    sueldoBruto: formData.get("sueldoBruto") ?? formData.get("amount"),
     method: formData.get("method") || "transferencia",
+    quincena: String(formData.get("quincena") ?? "mensual"),
     periodFrom: formData.get("periodFrom"),
     periodTo: formData.get("periodTo"),
     paidAt: formData.get("paidAt"),
@@ -86,15 +97,21 @@ export async function createEmployeeReceipt(employeeId: string, formData: FormDa
     throw new Error("El período hasta debe ser posterior al desde");
   }
 
+  const payroll = buildPayrollFromBruto(parsed.data.sueldoBruto);
+
   const receipt = await prisma.employeeReceipt.create({
     data: {
       employeeId: employee.id,
-      amount: parsed.data.amount,
+      amount: payroll.sueldoNeto,
+      sueldoBruto: payroll.sueldoBruto,
+      quincena: parsed.data.quincena,
       method: parsed.data.method,
       periodFrom,
       periodTo,
       paidAt,
       notes: parsed.data.notes,
+      employerLines: payroll.employerLines as unknown as Prisma.InputJsonValue,
+      employeeLines: payroll.employeeLines as unknown as Prisma.InputJsonValue,
       viewToken: generateReceiptViewToken(),
       registeredById: session.id,
     },
@@ -162,12 +179,20 @@ export async function sendEmployeeReceiptEmail(receiptId: string) {
     employeeName: employeeDisplayName(receipt.employee),
     documentId: receipt.employee.documentId,
     role: receipt.employee.role,
+    hireDate: receipt.employee.hireDate,
+    cuil: receipt.employee.cuil,
+    legajo: receipt.employee.legajo,
+    categoriaLaboral: receipt.employee.categoriaLaboral,
     amount: receipt.amount,
+    sueldoBruto: receipt.sueldoBruto,
+    quincena: receipt.quincena,
     method: receipt.method,
     periodFrom: receipt.periodFrom,
     periodTo: receipt.periodTo,
     paidAt: receipt.paidAt,
     notes: receipt.notes,
+    employerLines: receipt.employerLines,
+    employeeLines: receipt.employeeLines,
     signedName: receipt.signedName,
     signedAt: receipt.signedAt,
     signatureData: receipt.signatureData,

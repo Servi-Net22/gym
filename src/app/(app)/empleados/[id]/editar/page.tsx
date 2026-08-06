@@ -81,7 +81,7 @@ export default async function EditarEmpleadoPage({
               defaultValue={employee.email}
             />
             <Field
-              label="Sueldo"
+              label="Sueldo bruto de referencia"
               name="salary"
               type="number"
               step="1000"
@@ -93,6 +93,23 @@ export default async function EditarEmpleadoPage({
               name="hireDate"
               type="date"
               defaultValue={hire}
+            />
+            <Field
+              label="CUIL"
+              name="cuil"
+              placeholder="20-12345678-9"
+              defaultValue={employee.cuil ?? undefined}
+            />
+            <Field
+              label="Nº legajo"
+              name="legajo"
+              defaultValue={employee.legajo ?? undefined}
+            />
+            <Field
+              label="Categoría laboral"
+              name="categoriaLaboral"
+              placeholder="Si vacío, se usa el cargo"
+              defaultValue={employee.categoriaLaboral ?? undefined}
             />
             <Field
               label="Dirección"

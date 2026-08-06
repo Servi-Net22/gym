@@ -3,6 +3,7 @@ import { signEmployeeReceiptByToken } from "@/app/actions/employee-receipts";
 import { PrintButton } from "@/components/PrintButton";
 import { ReceiptDocument } from "@/components/ReceiptDocument";
 import { SignaturePad } from "@/components/SignaturePad";
+import { getCompanyInfo } from "@/lib/company";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +23,12 @@ export default async function PublicReciboPage({
   });
   if (!receipt) notFound();
 
-  const gym = process.env.NEXT_PUBLIC_APP_NAME ?? "GymFlow";
+  const gym = getCompanyInfo().name;
   const signAction = signEmployeeReceiptByToken.bind(null, token);
   const justSigned = firmado === "1";
 
   return (
-    <div className="mx-auto min-h-screen max-w-lg px-4 py-8 print:min-h-0 print:max-w-none print:px-0 print:py-0">
+    <div className="mx-auto min-h-screen max-w-4xl px-4 py-8 print:min-h-0 print:max-w-none print:px-0 print:py-0">
       <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">

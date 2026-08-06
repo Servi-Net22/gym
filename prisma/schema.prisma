@@ -107,22 +107,28 @@ model User {
 }
 
 model Employee {
-  id         String    @id @default(cuid())
-  firstName  String
-  lastName   String
-  documentId String    @unique
-  email      String?
-  phone      String?
-  role       String
-  salary     Float?
-  hireDate   DateTime  @default(now())
-  address    String?
-  notes      String?
-  active     Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  user       User?
-  receipts   EmployeeReceipt[]
+  id               String    @id @default(cuid())
+  firstName        String
+  lastName         String
+  documentId       String    @unique
+  email            String?
+  phone            String?
+  role             String
+  salary           Float?
+  hireDate         DateTime  @default(now())
+  address          String?
+  notes            String?
+  /// CUIL del empleado (formato libre, ej. 20-12345678-9)
+  cuil             String?
+  /// Nº de legajo interno
+  legajo           String?
+  /// Categoría laboral (si vacío, se usa el cargo/rol)
+  categoriaLaboral String?
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User?
+  receipts         EmployeeReceipt[]
 }
 
 enum EmployeeReceiptStatus {
@@ -132,29 +138,39 @@ enum EmployeeReceiptStatus {
 }
 
 /// Recibo de sueldo / liquidación del empleado (historial + firma)
+/// Modelo operativo al estilo anexo "recibo de sueldo" (no es asesoramiento legal/contable).
 model EmployeeReceipt {
-  id              String                 @id @default(cuid())
-  employeeId      String
-  employee        Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  amount          Float
-  method          String                 @default("transferencia")
-  periodFrom      DateTime
-  periodTo        DateTime
-  paidAt          DateTime               @default(now())
-  notes           String?
-  status          EmployeeReceiptStatus  @default(draft)
+  id               String                 @id @default(cuid())
+  employeeId       String
+  employee         Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  /// Sueldo neto a percibir
+  amount           Float
+  /// Sueldo bruto de la liquidación
+  sueldoBruto      Float
+  /// 1 = 1ª quincena, 2 = 2ª quincena, null = mensual
+  quincena         Int?
+  method           String                 @default("transferencia")
+  periodFrom       DateTime
+  periodTo         DateTime
+  paidAt           DateTime               @default(now())
+  notes            String?
+  /// Snapshot de líneas empleador: [{concepto,unidad,base,monto}]
+  employerLines    Json?
+  /// Snapshot de líneas trabajador (haberes + descuentos)
+  employeeLines    Json?
+  status           EmployeeReceiptStatus  @default(draft)
   /// PNG data URL de la firma del empleado
-  signatureData   String?
-  signedAt        DateTime?
-  signedName      String?
+  signatureData    String?
+  signedAt         DateTime?
+  signedName       String?
   /// Token público para ver/compartir el recibo (mail / WhatsApp)
-  viewToken       String                 @unique
-  emailSentAt     DateTime?
+  viewToken        String                 @unique
+  emailSentAt      DateTime?
   whatsappOpenedAt DateTime?
-  registeredById  String?
-  registeredBy    User?                  @relation("EmployeeReceiptRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  registeredById   String?
+  registeredBy     User?                  @relation("EmployeeReceiptRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
   @@index([employeeId, paidAt])
 }

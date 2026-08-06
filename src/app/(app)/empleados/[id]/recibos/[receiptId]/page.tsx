@@ -10,6 +10,7 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 import { ButtonLink, PageHeader, Panel, SubmitButton } from "@/components/Ui";
 import { getAppBaseUrl } from "@/lib/app-url";
+import { getCompanyInfo } from "@/lib/company";
 import {
   buildReceiptWhatsAppText,
   buildWhatsAppShareUrl,
@@ -51,7 +52,7 @@ export default async function ReciboDetallePage({
 
   const signAction = signEmployeeReceipt.bind(null, receipt.id);
   const emailAction = sendEmployeeReceiptEmail.bind(null, receipt.id);
-  const gym = process.env.NEXT_PUBLIC_APP_NAME ?? "GymFlow";
+  const gym = getCompanyInfo().name;
 
   return (
     <div className="space-y-6 print:space-y-0">
@@ -89,7 +90,7 @@ export default async function ReciboDetallePage({
         </Panel>
       </div>
 
-      <div className="max-w-2xl print:max-w-none">
+      <div className="max-w-4xl print:max-w-none">
         <ReceiptDocument
           receipt={receipt}
           employee={receipt.employee}

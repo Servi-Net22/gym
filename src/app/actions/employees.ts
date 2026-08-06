@@ -19,6 +19,9 @@ function parseEmployeeForm(formData: FormData) {
     salary: formData.get("salary") || undefined,
     hireDate: formData.get("hireDate") || undefined,
     address: formData.get("address") || undefined,
+    cuil: formData.get("cuil") || undefined,
+    legajo: formData.get("legajo") || undefined,
+    categoriaLaboral: formData.get("categoriaLaboral") || undefined,
     notes: formData.get("notes") || undefined,
     active: formData.get("active") === "on",
   });
