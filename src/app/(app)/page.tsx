@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader, Panel } from "@/components/Ui";
 import { AccessBadge, StatusBadge } from "@/components/StatusBadge";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   formatCurrency,
@@ -12,19 +13,28 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const session = await requireSession();
+  const orgId = session.organizationId;
+
   const [clients, employees, plans, payments, recentAccess, overdue] =
     await Promise.all([
-      prisma.client.count({ where: { active: true } }),
-      prisma.employee.count({ where: { active: true } }),
-      prisma.plan.count({ where: { active: true } }),
-      prisma.payment.aggregate({ _sum: { amount: true }, _count: true }),
+      prisma.client.count({ where: { organizationId: orgId, active: true } }),
+      prisma.employee.count({ where: { organizationId: orgId, active: true } }),
+      prisma.plan.count({ where: { organizationId: orgId, active: true } }),
+      prisma.payment.aggregate({
+        where: { organizationId: orgId },
+        _sum: { amount: true },
+        _count: true,
+      }),
       prisma.accessLog.findMany({
+        where: { organizationId: orgId },
         take: 8,
         orderBy: { scannedAt: "desc" },
         include: { client: true },
       }),
       prisma.client.findMany({
         where: {
+          organizationId: orgId,
           active: true,
           OR: [
             { membershipEndsAt: null },
@@ -39,6 +49,7 @@ export default async function HomePage() {
 
   const currentClients = await prisma.client.count({
     where: {
+      organizationId: orgId,
       active: true,
       membershipEndsAt: { gte: new Date() },
     },

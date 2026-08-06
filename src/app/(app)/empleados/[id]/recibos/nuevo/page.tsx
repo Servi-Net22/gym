@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createEmployeeReceipt } from "@/app/actions/employee-receipts";
 import { ReceiptCreateForm } from "@/components/ReceiptCreateForm";
 import { ButtonLink, PageHeader, Panel } from "@/components/Ui";
+import { requireAdmin } from "@/lib/auth";
 import { employeeDisplayName } from "@/lib/employee-receipts";
 import { prisma } from "@/lib/prisma";
 
@@ -19,8 +20,11 @@ export default async function NuevoReciboPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await requireAdmin();
   const { id } = await params;
-  const employee = await prisma.employee.findUnique({ where: { id } });
+  const employee = await prisma.employee.findFirst({
+    where: { id, organizationId: session.organizationId },
+  });
   if (!employee) notFound();
 
   const { from, to, today } = monthBounds();

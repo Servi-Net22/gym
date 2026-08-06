@@ -5,6 +5,7 @@ import {
   paymentSourceLabel,
   paymentStatusLabel,
 } from "@/lib/payment-methods";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   formatCurrency,
@@ -16,7 +17,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function PagosPage() {
+  const session = await requireSession();
   const payments = await prisma.payment.findMany({
+    where: { organizationId: session.organizationId },
     orderBy: { createdAt: "desc" },
     include: {
       client: true,

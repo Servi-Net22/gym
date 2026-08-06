@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { requireSession } from "@/lib/auth";
 import { confirmPaymentRecord } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, fullName } from "@/lib/utils";
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 
 async function simulateApprove(paymentId: string) {
   "use server";
-  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  const session = await requireSession();
+  const payment = await prisma.payment.findFirst({
+    where: { id: paymentId, organizationId: session.organizationId },
+  });
   if (!payment || payment.method !== "mercadopago") {
     redirect("/pagos");
   }
@@ -24,9 +28,10 @@ export default async function CheckoutDemoPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await requireSession();
   const { id } = await params;
-  const payment = await prisma.payment.findUnique({
-    where: { id },
+  const payment = await prisma.payment.findFirst({
+    where: { id, organizationId: session.organizationId },
     include: { client: true },
   });
   if (!payment || payment.method !== "mercadopago") notFound();

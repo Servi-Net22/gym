@@ -28,7 +28,9 @@ export default async function ClientPortalLayout({
   children: React.ReactNode;
 }) {
   const session = await getClientSession();
-  const unread = session ? await countUnreadContents(session.id) : 0;
+  const unread = session
+    ? await countUnreadContents(session.id, session.organizationId)
+    : 0;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 pb-24 pt-5">

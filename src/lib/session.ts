@@ -8,6 +8,9 @@ export type SessionUser = {
   name: string;
   role: "ADMIN" | "EMPLOYEE";
   employeeId: string | null;
+  organizationId: string;
+  organizationName: string;
+  organizationSlug: string;
 };
 
 const SESSION_TTL = "8h";
@@ -26,6 +29,9 @@ export async function createSessionToken(user: SessionUser) {
     name: user.name,
     role: user.role,
     employeeId: user.employeeId,
+    organizationId: user.organizationId,
+    organizationName: user.organizationName,
+    organizationSlug: user.organizationSlug,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
@@ -40,6 +46,7 @@ export async function readSessionToken(
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (!payload.sub || typeof payload.email !== "string") return null;
+    if (typeof payload.organizationId !== "string") return null;
     return {
       id: payload.sub,
       email: payload.email,
@@ -47,6 +54,9 @@ export async function readSessionToken(
       role: payload.role === "ADMIN" ? "ADMIN" : "EMPLOYEE",
       employeeId:
         typeof payload.employeeId === "string" ? payload.employeeId : null,
+      organizationId: payload.organizationId,
+      organizationName: String(payload.organizationName ?? ""),
+      organizationSlug: String(payload.organizationSlug ?? ""),
     };
   } catch {
     return null;

@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
-import { getCompanyInfo } from "@/lib/company";
+import type { CompanyInfo } from "@/lib/company";
+import { getCompanyInfoFromEnv } from "@/lib/company";
 import {
   employerCostPieSlices,
   pieChartPaths,
@@ -119,8 +120,9 @@ export function receiptHtml(input: {
   receiptId: string;
   gymName?: string;
   receiptUrl?: string;
+  company?: CompanyInfo;
 }) {
-  const company = getCompanyInfo();
+  const company = input.company ?? getCompanyInfoFromEnv();
   const empresa = input.gymName?.trim() || company.name;
   const code = input.receiptId.slice(-8).toUpperCase();
   const signed = Boolean(input.signatureData);

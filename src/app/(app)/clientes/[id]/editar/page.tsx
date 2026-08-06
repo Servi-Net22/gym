@@ -10,6 +10,7 @@ import {
   SubmitButton,
   TextArea,
 } from "@/components/Ui";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fullName } from "@/lib/utils";
 
@@ -20,10 +21,15 @@ export default async function EditarClientePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await requireSession();
   const { id } = await params;
+  const orgId = session.organizationId;
   const [client, plans] = await Promise.all([
-    prisma.client.findUnique({ where: { id } }),
-    prisma.plan.findMany({ orderBy: { name: "asc" } }),
+    prisma.client.findFirst({ where: { id, organizationId: orgId } }),
+    prisma.plan.findMany({
+      where: { organizationId: orgId },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!client) notFound();

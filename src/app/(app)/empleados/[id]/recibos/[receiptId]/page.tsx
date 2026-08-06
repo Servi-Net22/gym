@@ -10,7 +10,8 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 import { ButtonLink, PageHeader, Panel, SubmitButton } from "@/components/Ui";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { getCompanyInfo } from "@/lib/company";
+import { requireAdmin } from "@/lib/auth";
+import { companyFromOrganization } from "@/lib/company";
 import {
   buildReceiptWhatsAppText,
   buildWhatsAppShareUrl,
@@ -26,11 +27,17 @@ export default async function ReciboDetallePage({
 }: {
   params: Promise<{ id: string; receiptId: string }>;
 }) {
+  const session = await requireAdmin();
   const { id, receiptId } = await params;
   const receipt = await prisma.employeeReceipt.findFirst({
-    where: { id: receiptId, employeeId: id },
+    where: {
+      id: receiptId,
+      employeeId: id,
+      organizationId: session.organizationId,
+    },
     include: {
       employee: true,
+      organization: true,
       registeredBy: { select: { name: true } },
     },
   });
@@ -52,7 +59,8 @@ export default async function ReciboDetallePage({
 
   const signAction = signEmployeeReceipt.bind(null, receipt.id);
   const emailAction = sendEmployeeReceiptEmail.bind(null, receipt.id);
-  const gym = getCompanyInfo().name;
+  const company = companyFromOrganization(receipt.organization);
+  const gym = company.name;
 
   return (
     <div className="space-y-6 print:space-y-0">
@@ -95,6 +103,7 @@ export default async function ReciboDetallePage({
           receipt={receipt}
           employee={receipt.employee}
           gymName={gym}
+          company={company}
         />
       </div>
 

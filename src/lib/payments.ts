@@ -37,9 +37,18 @@ export async function createPaymentRecord(input: ApplyInput) {
     registeredById = actor.id;
   }
 
+  const client = await prisma.client.findUnique({
+    where: { id: input.clientId },
+    select: { id: true, organizationId: true },
+  });
+  if (!client) {
+    throw new Error("Cliente no encontrado");
+  }
+
   return prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
       data: {
+        organizationId: client.organizationId,
         clientId: input.clientId,
         amount: input.amount,
         method: input.method,

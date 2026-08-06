@@ -37,8 +37,9 @@ export default async function PagoDetallePage({
   const { id } = await params;
   const { mp } = await searchParams;
   const session = await getSession();
-  const payment = await prisma.payment.findUnique({
-    where: { id },
+  if (!session) notFound();
+  const payment = await prisma.payment.findFirst({
+    where: { id, organizationId: session.organizationId },
     include: {
       client: { include: { plan: true } },
       registeredBy: { select: { id: true, name: true, email: true, role: true } },

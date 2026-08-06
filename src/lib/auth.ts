@@ -42,12 +42,16 @@ export async function getSession(): Promise<SessionUser | null> {
       role: true,
       employeeId: true,
       active: true,
+      organizationId: true,
+      organization: {
+        select: { id: true, name: true, slug: true, active: true },
+      },
     },
   });
 
   // No borrar cookies acá: getSession corre en Server Components (layout).
   // Si el usuario ya no existe, devolvemos null y el proxy/layout mandan a login.
-  if (!user || !user.active) {
+  if (!user || !user.active || !user.organization.active) {
     return null;
   }
 
@@ -57,6 +61,9 @@ export async function getSession(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role,
     employeeId: user.employeeId,
+    organizationId: user.organization.id,
+    organizationName: user.organization.name,
+    organizationSlug: user.organization.slug,
   };
 }
 

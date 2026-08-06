@@ -14,6 +14,7 @@ import {
   Panel,
   SubmitButton,
 } from "@/components/Ui";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   formatCurrency,
@@ -31,10 +32,11 @@ export default async function ClienteDetallePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ pin?: string }>;
 }) {
+  const session = await requireSession();
   const { id } = await params;
   const { pin } = await searchParams;
-  const client = await prisma.client.findUnique({
-    where: { id },
+  const client = await prisma.client.findFirst({
+    where: { id, organizationId: session.organizationId },
     include: {
       plan: true,
       payments: { orderBy: { paidAt: "desc" }, take: 10 },
@@ -65,8 +67,11 @@ export default async function ClienteDetallePage({
         <div className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
           PIN del portal (mostralo una vez al cliente):{" "}
           <strong className="font-mono text-lg">{pin}</strong> · App:{" "}
-          <Link href="/mi/login" className="underline">
-            /mi/login
+          <Link
+            href={`/mi/${session.organizationSlug}/login`}
+            className="underline"
+          >
+            /mi/{session.organizationSlug}/login
           </Link>
         </div>
       ) : null}
@@ -122,7 +127,10 @@ export default async function ClienteDetallePage({
             <Link href="/acceso" className="self-center text-sm underline">
               Probar en barrera
             </Link>
-            <Link href="/mi/login" className="self-center text-sm underline">
+            <Link
+              href={`/mi/${session.organizationSlug}/login`}
+              className="self-center text-sm underline"
+            >
               Ver app cliente
             </Link>
           </div>

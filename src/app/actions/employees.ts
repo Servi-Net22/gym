@@ -28,7 +28,8 @@ function parseEmployeeForm(formData: FormData) {
 }
 
 export async function createEmployee(formData: FormData) {
-  await requireAdmin();
+  const session = await requireAdmin();
+  const orgId = session.organizationId;
   const parsed = parseEmployeeForm(formData);
 
   if (!parsed.success) {
@@ -54,9 +55,12 @@ export async function createEmployee(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    const employee = await tx.employee.create({ data });
+    const employee = await tx.employee.create({
+      data: { ...data, organizationId: orgId },
+    });
     await tx.user.create({
       data: {
+        organizationId: orgId,
         email: loginEmail,
         passwordHash: await hashPassword(loginPassword),
         name: `${data.firstName} ${data.lastName}`,
@@ -80,12 +84,19 @@ export async function createEmployee(formData: FormData) {
 }
 
 export async function updateEmployee(id: string, formData: FormData) {
-  await requireAdmin();
+  const session = await requireAdmin();
+  const orgId = session.organizationId;
   const parsed = parseEmployeeForm(formData);
 
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
   }
+
+  const existing = await prisma.employee.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true },
+  });
+  if (!existing) throw new Error("Empleado no encontrado");
 
   const data = parsed.data;
   const loginPassword = String(formData.get("loginPassword") || "").trim();
@@ -95,6 +106,9 @@ export async function updateEmployee(id: string, formData: FormData) {
 
     const linked = await tx.user.findUnique({ where: { employeeId: id } });
     if (linked) {
+      if (linked.organizationId !== orgId) {
+        throw new Error("Empleado no encontrado");
+      }
       await tx.user.update({
         where: { id: linked.id },
         data: {
@@ -117,14 +131,17 @@ export async function updateEmployee(id: string, formData: FormData) {
 }
 
 export async function toggleEmployee(id: string) {
-  await requireAdmin();
-  const employee = await prisma.employee.findUniqueOrThrow({ where: { id } });
+  const session = await requireAdmin();
+  const employee = await prisma.employee.findFirst({
+    where: { id, organizationId: session.organizationId },
+  });
+  if (!employee) throw new Error("Empleado no encontrado");
   const active = !employee.active;
 
   await prisma.$transaction(async (tx) => {
     await tx.employee.update({ where: { id }, data: { active } });
     await tx.user.updateMany({
-      where: { employeeId: id },
+      where: { employeeId: id, organizationId: session.organizationId },
       data: { active },
     });
   });

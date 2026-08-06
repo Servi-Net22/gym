@@ -11,11 +11,11 @@ export const dynamic = "force-dynamic";
 export default async function ClientHomePage() {
   const session = await requireClientSession();
   const [client, unread] = await Promise.all([
-    prisma.client.findUniqueOrThrow({
-      where: { id: session.id },
+    prisma.client.findFirstOrThrow({
+      where: { id: session.id, organizationId: session.organizationId },
       include: { plan: true },
     }),
-    countUnreadContents(session.id),
+    countUnreadContents(session.id, session.organizationId),
   ]);
 
   const alDia = isMembershipCurrent(client.membershipEndsAt);

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { requireAdmin } from "@/lib/auth";
+import { companyFromOrganization } from "@/lib/company";
 import {
   employeeDisplayName,
   generateReceiptViewToken,
@@ -69,9 +70,10 @@ async function applySignature(
 
 export async function createEmployeeReceipt(employeeId: string, formData: FormData) {
   const session = await requireAdmin();
-  const employee = await prisma.employee.findUniqueOrThrow({
-    where: { id: employeeId },
+  const employee = await prisma.employee.findFirst({
+    where: { id: employeeId, organizationId: session.organizationId },
   });
+  if (!employee) throw new Error("Empleado no encontrado");
 
   const parsed = createSchema.safeParse({
     sueldoBruto: formData.get("sueldoBruto") ?? formData.get("amount"),
@@ -101,6 +103,7 @@ export async function createEmployeeReceipt(employeeId: string, formData: FormDa
 
   const receipt = await prisma.employeeReceipt.create({
     data: {
+      organizationId: session.organizationId,
       employeeId: employee.id,
       amount: payroll.sueldoNeto,
       sueldoBruto: payroll.sueldoBruto,
@@ -122,7 +125,13 @@ export async function createEmployeeReceipt(employeeId: string, formData: FormDa
 }
 
 export async function signEmployeeReceipt(receiptId: string, formData: FormData) {
-  await requireAdmin();
+  const session = await requireAdmin();
+  const owned = await prisma.employeeReceipt.findFirst({
+    where: { id: receiptId, organizationId: session.organizationId },
+    select: { id: true },
+  });
+  if (!owned) throw new Error("Recibo no encontrado");
+
   const parsed = signSchema.safeParse({
     signatureData: formData.get("signatureData"),
     signedName: formData.get("signedName"),
@@ -161,11 +170,12 @@ export async function signEmployeeReceiptByToken(
 }
 
 export async function sendEmployeeReceiptEmail(receiptId: string) {
-  await requireAdmin();
-  const receipt = await prisma.employeeReceipt.findUniqueOrThrow({
-    where: { id: receiptId },
-    include: { employee: true },
+  const session = await requireAdmin();
+  const receipt = await prisma.employeeReceipt.findFirst({
+    where: { id: receiptId, organizationId: session.organizationId },
+    include: { employee: true, organization: true },
   });
+  if (!receipt) throw new Error("Recibo no encontrado");
 
   const to = receipt.employee.email?.trim();
   if (!to) {
@@ -175,6 +185,7 @@ export async function sendEmployeeReceiptEmail(receiptId: string) {
   const base = await getAppBaseUrl();
   const receiptUrl = `${base}/recibo/${receipt.viewToken}`;
   const signed = Boolean(receipt.signatureData);
+  const company = companyFromOrganization(receipt.organization);
   const html = receiptHtml({
     employeeName: employeeDisplayName(receipt.employee),
     documentId: receipt.employee.documentId,
@@ -198,6 +209,8 @@ export async function sendEmployeeReceiptEmail(receiptId: string) {
     signatureData: receipt.signatureData,
     receiptId: receipt.id,
     receiptUrl,
+    company,
+    gymName: company.name,
   });
 
   const result = await emailEmployeeReceipt({
@@ -230,7 +243,13 @@ export async function sendEmployeeReceiptEmail(receiptId: string) {
 }
 
 export async function markWhatsAppOpened(receiptId: string) {
-  await requireAdmin();
+  const session = await requireAdmin();
+  const owned = await prisma.employeeReceipt.findFirst({
+    where: { id: receiptId, organizationId: session.organizationId },
+    select: { id: true, employeeId: true, viewToken: true },
+  });
+  if (!owned) throw new Error("Recibo no encontrado");
+
   const receipt = await prisma.employeeReceipt.update({
     where: { id: receiptId },
     data: {

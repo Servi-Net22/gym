@@ -7,21 +7,29 @@ export function visibleContentWhere(clientId: string) {
   };
 }
 
-export async function countUnreadContents(clientId: string) {
+export async function countUnreadContents(
+  clientId: string,
+  organizationId: string,
+) {
   return prisma.content.count({
     where: {
+      organizationId,
       ...visibleContentWhere(clientId),
       reads: { none: { clientId } },
     },
   });
 }
 
-export async function markContentAsRead(clientId: string, contentId: string) {
+export async function markContentAsRead(
+  clientId: string,
+  contentId: string,
+  organizationId: string,
+) {
   await prisma.contentRead.upsert({
     where: {
       contentId_clientId: { contentId, clientId },
     },
-    create: { contentId, clientId },
+    create: { contentId, clientId, organizationId },
     update: { readAt: new Date() },
   });
 }

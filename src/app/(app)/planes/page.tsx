@@ -7,13 +7,16 @@ import {
   PageHeader,
   SubmitButton,
 } from "@/components/Ui";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlanesPage() {
+  const session = await requireSession();
   const plans = await prisma.plan.findMany({
+    where: { organizationId: session.organizationId },
     orderBy: { price: "asc" },
     include: { _count: { select: { clients: true } } },
   });

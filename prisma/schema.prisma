@@ -1,4 +1,4 @@
-// Sistema de gestión de gimnasio
+// Sistema de gestión de gimnasio (multi-tenant)
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -8,42 +8,75 @@ datasource db {
   provider = "postgresql"
 }
 
-model Plan {
+/// Comercio / gimnasio (tenant)
+model Organization {
   id           String   @id @default(cuid())
   name         String
-  description  String?
-  price        Float
-  durationDays Int
+  slug         String   @unique
   active       Boolean  @default(true)
+  address      String   @default("")
+  cuit         String   @default("")
+  lugarPago    String   @default("")
+  fPagoAportes String   @default("")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  clients      Client[]
+
+  plans            Plan[]
+  clients          Client[]
+  employees        Employee[]
+  users            User[]
+  payments         Payment[]
+  contents         Content[]
+  contentReads     ContentRead[]
+  accessLogs       AccessLog[]
+  employeeReceipts EmployeeReceipt[]
+}
+
+model Plan {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  price          Float
+  durationDays   Int
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  clients        Client[]
+
+  @@index([organizationId])
 }
 
 model Client {
-  id               String      @id @default(cuid())
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   firstName        String
   lastName         String
-  documentId       String      @unique
+  documentId       String
   email            String?
   phone            String?
   birthDate        DateTime?
   address          String?
   emergencyContact String?
   notes            String?
-  active           Boolean     @default(true)
-  qrToken          String      @unique
+  active           Boolean      @default(true)
+  qrToken          String       @unique
   /// PIN hasheado para ingresar al portal / PWA del cliente
   portalPinHash    String?
   membershipEndsAt DateTime?
   planId           String?
-  plan             Plan?       @relation(fields: [planId], references: [id])
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  plan             Plan?        @relation(fields: [planId], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   payments         Payment[]
   accessLogs       AccessLog[]
   contents         Content[]
   contentReads     ContentRead[]
+
+  @@unique([organizationId, documentId])
+  @@index([organizationId])
 }
 
 enum ContentType {
@@ -55,33 +88,40 @@ enum ContentType {
 
 /// Contenidos para el PWA del cliente (info, rutinas, dietas, avisos)
 model Content {
-  id          String      @id @default(cuid())
-  type        ContentType @default(info)
-  title       String
-  body        String
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           ContentType  @default(info)
+  title          String
+  body           String
   /// null = visible para todos los clientes activos
-  clientId    String?
-  client      Client?     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  published   Boolean     @default(true)
-  createdById String?
-  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  publishedAt DateTime    @default(now())
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  reads       ContentRead[]
+  clientId       String?
+  client         Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  published      Boolean      @default(true)
+  createdById    String?
+  createdBy      User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  publishedAt    DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  reads          ContentRead[]
+
+  @@index([organizationId])
 }
 
 /// Lectura de un contenido por un cliente (para avisos de “nuevos”)
 model ContentRead {
-  id        String   @id @default(cuid())
-  contentId String
-  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  readAt    DateTime @default(now())
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contentId      String
+  content        Content      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  readAt         DateTime     @default(now())
 
   @@unique([contentId, clientId])
   @@index([clientId])
+  @@index([organizationId])
 }
 
 enum UserRole {
@@ -90,32 +130,38 @@ enum UserRole {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email            String       @unique
   passwordHash     String
   name             String
-  role             UserRole  @default(EMPLOYEE)
-  active           Boolean   @default(true)
-  employeeId       String?   @unique
-  employee         Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  paymentsRegistered Payment[] @relation("PaymentRegisteredBy")
-  paymentsVoided     Payment[] @relation("PaymentVoidedBy")
+  role             UserRole     @default(EMPLOYEE)
+  active           Boolean      @default(true)
+  employeeId       String?      @unique
+  employee         Employee?    @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  paymentsRegistered Payment[]  @relation("PaymentRegisteredBy")
+  paymentsVoided     Payment[]  @relation("PaymentVoidedBy")
   contentsCreated    Content[]
   employeeReceipts   EmployeeReceipt[] @relation("EmployeeReceiptRegisteredBy")
+
+  @@index([organizationId])
 }
 
 model Employee {
-  id               String    @id @default(cuid())
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   firstName        String
   lastName         String
-  documentId       String    @unique
+  documentId       String
   email            String?
   phone            String?
   role             String
   salary           Float?
-  hireDate         DateTime  @default(now())
+  hireDate         DateTime     @default(now())
   address          String?
   notes            String?
   /// CUIL del empleado (formato libre, ej. 20-12345678-9)
@@ -124,11 +170,14 @@ model Employee {
   legajo           String?
   /// Categoría laboral (si vacío, se usa el cargo/rol)
   categoriaLaboral String?
-  active           Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   user             User?
   receipts         EmployeeReceipt[]
+
+  @@unique([organizationId, documentId])
+  @@index([organizationId])
 }
 
 enum EmployeeReceiptStatus {
@@ -141,6 +190,8 @@ enum EmployeeReceiptStatus {
 /// Modelo operativo al estilo anexo "recibo de sueldo" (no es asesoramiento legal/contable).
 model EmployeeReceipt {
   id               String                 @id @default(cuid())
+  organizationId   String
+  organization     Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   employeeId       String
   employee         Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   /// Sueldo neto a percibir
@@ -173,6 +224,7 @@ model EmployeeReceipt {
   updatedAt        DateTime               @updatedAt
 
   @@index([employeeId, paidAt])
+  @@index([organizationId])
 }
 
 enum PaymentMethod {
@@ -195,6 +247,8 @@ enum PaymentSource {
 
 model Payment {
   id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   clientId       String
   client         Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   amount         Float
@@ -217,14 +271,20 @@ model Payment {
   voidReason     String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
 }
 
 model AccessLog {
-  id        String   @id @default(cuid())
-  clientId  String?
-  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  qrToken   String
-  granted   Boolean
-  reason    String
-  scannedAt DateTime @default(now())
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  clientId       String?
+  client         Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  qrToken        String
+  granted        Boolean
+  reason         String
+  scannedAt      DateTime      @default(now())
+
+  @@index([organizationId])
 }

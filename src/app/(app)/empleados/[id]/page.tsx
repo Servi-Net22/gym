@@ -10,6 +10,7 @@ import {
   employeeDisplayName,
   receiptMethodLabel,
 } from "@/lib/employee-receipts";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 
@@ -26,9 +27,10 @@ export default async function EmpleadoDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await requireAdmin();
   const { id } = await params;
-  const employee = await prisma.employee.findUnique({
-    where: { id },
+  const employee = await prisma.employee.findFirst({
+    where: { id, organizationId: session.organizationId },
     include: {
       user: { select: { email: true } },
       receipts: {

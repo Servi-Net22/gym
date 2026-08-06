@@ -1,18 +1,23 @@
 import { BarrierSimulator } from "@/components/BarrierSimulator";
 import { DataTable, PageHeader, Panel } from "@/components/Ui";
 import { AccessBadge } from "@/components/StatusBadge";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime, fullName, isMembershipCurrent } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccesoPage() {
+  const session = await requireSession();
+  const orgId = session.organizationId;
   const [clients, logs] = await Promise.all([
     prisma.client.findMany({
+      where: { organizationId: orgId },
       orderBy: { lastName: "asc" },
       take: 12,
     }),
     prisma.accessLog.findMany({
+      where: { organizationId: orgId },
       take: 20,
       orderBy: { scannedAt: "desc" },
       include: { client: true },

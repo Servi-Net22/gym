@@ -9,6 +9,7 @@ import {
   SubmitButton,
   TextArea,
 } from "@/components/Ui";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +19,11 @@ export default async function EditarPlanPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await requireSession();
   const { id } = await params;
-  const plan = await prisma.plan.findUnique({ where: { id } });
+  const plan = await prisma.plan.findFirst({
+    where: { id, organizationId: session.organizationId },
+  });
   if (!plan) notFound();
 
   const action = updatePlan.bind(null, plan.id);

@@ -8,11 +8,26 @@ import {
 
 const initial: ClientLoginState = {};
 
-export function ClientLoginForm() {
+export function ClientLoginForm({
+  defaultOrgSlug = "",
+}: {
+  defaultOrgSlug?: string;
+}) {
   const [state, action, pending] = useActionState(clientLoginAction, initial);
 
   return (
     <form action={action} className="space-y-4">
+      <label className="block space-y-1.5">
+        <span className="text-sm font-medium">Código del gimnasio</span>
+        <input
+          name="orgSlug"
+          required
+          defaultValue={defaultOrgSlug}
+          autoComplete="organization"
+          placeholder="ej. gymflow"
+          className="w-full rounded-md border border-[var(--line)] bg-white px-3 py-2.5 text-sm outline-none ring-[var(--accent)] focus:ring-2"
+        />
+      </label>
       <label className="block space-y-1.5">
         <span className="text-sm font-medium">DNI / Documento</span>
         <input

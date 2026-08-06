@@ -18,6 +18,7 @@ const links: {
   { href: "/pagos", label: "Pagos", roles: ["ADMIN", "EMPLOYEE"] },
   { href: "/contenidos", label: "Contenidos PWA", roles: ["ADMIN", "EMPLOYEE"] },
   { href: "/acceso", label: "Acceso / Barrera", roles: ["ADMIN", "EMPLOYEE"] },
+  { href: "/configuracion", label: "Configuración", roles: ["ADMIN"] },
 ];
 
 export function Sidebar({ user }: { user: SessionUser }) {
@@ -32,8 +33,11 @@ export function Sidebar({ user }: { user: SessionUser }) {
         <p className="font-[family-name:var(--font-display)] text-3xl tracking-wide text-[var(--ink)]">
           GymFlow
         </p>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Gestión y control de ingreso
+        <p className="mt-1 text-sm font-medium text-[var(--ink)]">
+          {user.organizationName || "Comercio"}
+        </p>
+        <p className="mt-0.5 text-xs text-[var(--muted)]">
+          /{user.organizationSlug || "—"}
         </p>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">

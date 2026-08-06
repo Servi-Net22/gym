@@ -23,8 +23,13 @@ export async function loginAction(
     return { error: "Ingresá email y contraseña" };
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.active) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: {
+      organization: { select: { id: true, name: true, slug: true, active: true } },
+    },
+  });
+  if (!user || !user.active || !user.organization.active) {
     return { error: "Credenciales inválidas" };
   }
 
@@ -39,6 +44,9 @@ export async function loginAction(
     name: user.name,
     role: user.role,
     employeeId: user.employeeId,
+    organizationId: user.organization.id,
+    organizationName: user.organization.name,
+    organizationSlug: user.organization.slug,
   });
 
   const jar = await cookies();

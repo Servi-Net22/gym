@@ -9,10 +9,12 @@ import {
   createClientSessionToken,
   requireClientSession,
 } from "@/lib/client-auth";
+import { readClientSessionToken } from "@/lib/client-session";
 import {
   markContentAsRead,
   visibleContentWhere,
 } from "@/lib/client-contents";
+import { normalizeOrgSlug } from "@/lib/company";
 import { sessionCookieOptions } from "@/lib/cookie-options";
 import { prisma } from "@/lib/prisma";
 
@@ -22,15 +24,29 @@ export async function clientLoginAction(
   _prev: ClientLoginState,
   formData: FormData,
 ): Promise<ClientLoginState> {
+  const orgSlug = normalizeOrgSlug(String(formData.get("orgSlug") ?? ""));
   const documentId = String(formData.get("documentId") ?? "").trim();
   const pin = String(formData.get("pin") ?? "").trim();
 
-  if (!documentId || !pin) {
-    return { error: "Ingresá DNI y PIN" };
+  if (!orgSlug || !documentId || !pin) {
+    return { error: "Ingresá el código del gym, DNI y PIN" };
+  }
+
+  const org = await prisma.organization.findFirst({
+    where: { slug: orgSlug, active: true },
+    select: { id: true, slug: true },
+  });
+  if (!org) {
+    return { error: "Gimnasio no encontrado" };
   }
 
   const client = await prisma.client.findUnique({
-    where: { documentId },
+    where: {
+      organizationId_documentId: {
+        organizationId: org.id,
+        documentId,
+      },
+    },
   });
 
   if (!client || !client.active || !client.portalPinHash) {
@@ -46,6 +62,8 @@ export async function clientLoginAction(
     id: client.id,
     documentId: client.documentId,
     name: `${client.firstName} ${client.lastName}`,
+    organizationId: org.id,
+    organizationSlug: org.slug,
   });
 
   const jar = await cookies();
@@ -60,8 +78,14 @@ export async function clientLoginAction(
 
 export async function clientLogoutAction() {
   const jar = await cookies();
+  const token = jar.get(CLIENT_SESSION_COOKIE)?.value;
+  const session = token ? await readClientSessionToken(token) : null;
   jar.delete(CLIENT_SESSION_COOKIE);
-  redirect("/mi/login");
+  redirect(
+    session?.organizationSlug
+      ? `/mi/${session.organizationSlug}/login`
+      : "/mi/login",
+  );
 }
 
 /** Marca un contenido como leído (llamar desde el cliente, no durante el render RSC). */
@@ -70,13 +94,14 @@ export async function markContentReadAction(contentId: string) {
   const content = await prisma.content.findFirst({
     where: {
       id: contentId,
+      organizationId: session.organizationId,
       ...visibleContentWhere(session.id),
     },
-    select: { id: true },
+    select: { id: true, organizationId: true },
   });
   if (!content) return { ok: false as const };
 
-  await markContentAsRead(session.id, content.id);
+  await markContentAsRead(session.id, content.id, content.organizationId);
   revalidatePath("/mi");
   revalidatePath("/mi/contenidos");
   revalidatePath(`/mi/contenidos/${content.id}`);

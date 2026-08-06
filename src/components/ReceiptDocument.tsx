@@ -1,4 +1,5 @@
-import { getCompanyInfo } from "@/lib/company";
+import type { CompanyInfo } from "@/lib/company";
+import { getCompanyInfoFromEnv } from "@/lib/company";
 import {
   employeeDisplayName,
   receiptMethodLabel,
@@ -138,12 +139,14 @@ export function ReceiptDocument({
   receipt,
   employee,
   gymName,
+  company: companyProp,
 }: {
   receipt: Receipt;
   employee: Employee;
   gymName?: string;
+  company?: CompanyInfo;
 }) {
-  const company = getCompanyInfo();
+  const company = companyProp ?? getCompanyInfoFromEnv();
   const empresa = gymName?.trim() || company.name;
 
   const code = receipt.id.slice(-8).toUpperCase();

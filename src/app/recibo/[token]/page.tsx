@@ -3,7 +3,7 @@ import { signEmployeeReceiptByToken } from "@/app/actions/employee-receipts";
 import { PrintButton } from "@/components/PrintButton";
 import { ReceiptDocument } from "@/components/ReceiptDocument";
 import { SignaturePad } from "@/components/SignaturePad";
-import { getCompanyInfo } from "@/lib/company";
+import { companyFromOrganization } from "@/lib/company";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +19,12 @@ export default async function PublicReciboPage({
   const { firmado } = await searchParams;
   const receipt = await prisma.employeeReceipt.findUnique({
     where: { viewToken: token },
-    include: { employee: true },
+    include: { employee: true, organization: true },
   });
   if (!receipt) notFound();
 
-  const gym = getCompanyInfo().name;
+  const company = companyFromOrganization(receipt.organization);
+  const gym = company.name;
   const signAction = signEmployeeReceiptByToken.bind(null, token);
   const justSigned = firmado === "1";
 
@@ -53,6 +54,7 @@ export default async function PublicReciboPage({
         receipt={receipt}
         employee={receipt.employee}
         gymName={gym}
+        company={company}
       />
 
       {!receipt.signatureData ? (

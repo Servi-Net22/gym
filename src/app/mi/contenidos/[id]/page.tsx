@@ -26,6 +26,7 @@ export default async function ClientContentDetailPage({
   const item = await prisma.content.findFirst({
     where: {
       id,
+      organizationId: session.organizationId,
       ...visibleContentWhere(session.id),
     },
     include: {

@@ -5,6 +5,14 @@ import {
 } from "@/lib/client-session";
 import { SESSION_COOKIE, readSessionToken } from "@/lib/session";
 
+function isClientLoginPath(pathname: string) {
+  if (pathname === "/mi/login" || pathname.startsWith("/mi/login/")) {
+    return true;
+  }
+  // /mi/[slug]/login
+  return /^\/mi\/[^/]+\/login\/?$/.test(pathname);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -29,7 +37,7 @@ export async function proxy(request: NextRequest) {
 
   // --- Portal clientes (PWA) ---
   if (pathname === "/mi" || pathname.startsWith("/mi/")) {
-    if (pathname === "/mi/login" || pathname.startsWith("/mi/login/")) {
+    if (isClientLoginPath(pathname)) {
       return NextResponse.next();
     }
 

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { planSchema } from "@/lib/validations";
 
 export async function createPlan(formData: FormData) {
-  await requireSession();
+  const session = await requireSession();
   const parsed = planSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
@@ -20,13 +20,15 @@ export async function createPlan(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
   }
 
-  await prisma.plan.create({ data: parsed.data });
+  await prisma.plan.create({
+    data: { ...parsed.data, organizationId: session.organizationId },
+  });
   revalidatePath("/planes");
   redirect("/planes");
 }
 
 export async function updatePlan(id: string, formData: FormData) {
-  await requireSession();
+  const session = await requireSession();
   const parsed = planSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
@@ -39,14 +41,21 @@ export async function updatePlan(id: string, formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
   }
 
-  await prisma.plan.update({ where: { id }, data: parsed.data });
+  const result = await prisma.plan.updateMany({
+    where: { id, organizationId: session.organizationId },
+    data: parsed.data,
+  });
+  if (result.count === 0) throw new Error("Plan no encontrado");
   revalidatePath("/planes");
   redirect("/planes");
 }
 
 export async function togglePlan(id: string) {
-  await requireSession();
-  const plan = await prisma.plan.findUniqueOrThrow({ where: { id } });
+  const session = await requireSession();
+  const plan = await prisma.plan.findFirst({
+    where: { id, organizationId: session.organizationId },
+  });
+  if (!plan) throw new Error("Plan no encontrado");
   await prisma.plan.update({
     where: { id },
     data: { active: !plan.active },

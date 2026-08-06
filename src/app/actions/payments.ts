@@ -63,9 +63,10 @@ export async function registerManualPayment(formData: FormData) {
   }
 
   const data = parsed.data;
-  const client = await prisma.client.findUniqueOrThrow({
-    where: { id: data.clientId },
+  const client = await prisma.client.findFirst({
+    where: { id: data.clientId, organizationId: session.organizationId },
   });
+  if (!client) throw new Error("Cliente no encontrado");
 
   const payment = await createPaymentRecord({
     clientId: data.clientId,
@@ -103,10 +104,11 @@ export async function startAutomaticCharge(formData: FormData) {
   }
 
   const data = parsed.data;
-  const client = await prisma.client.findUniqueOrThrow({
-    where: { id: data.clientId },
+  const client = await prisma.client.findFirst({
+    where: { id: data.clientId, organizationId: session.organizationId },
     include: { plan: true },
   });
+  if (!client) throw new Error("Cliente no encontrado");
 
   const base = await getAppBaseUrl();
 
@@ -211,6 +213,11 @@ export async function startAutomaticCharge(formData: FormData) {
 
 export async function confirmPendingPayment(paymentId: string) {
   const session = await requireSession();
+  const owned = await prisma.payment.findFirst({
+    where: { id: paymentId, organizationId: session.organizationId },
+    select: { id: true },
+  });
+  if (!owned) throw new Error("Pago no encontrado");
   const payment = await confirmPaymentRecord(paymentId, {
     notes: `Confirmado manualmente por ${session.name}`,
   });
@@ -221,6 +228,11 @@ export async function confirmPendingPayment(paymentId: string) {
 
 export async function cancelPendingPayment(paymentId: string) {
   const session = await requireSession();
+  const owned = await prisma.payment.findFirst({
+    where: { id: paymentId, organizationId: session.organizationId },
+    select: { id: true },
+  });
+  if (!owned) throw new Error("Pago no encontrado");
   const payment = await voidPaymentRecord({
     paymentId,
     voidedById: session.id,
@@ -255,6 +267,12 @@ export async function voidPayment(formData: FormData) {
   if (!paymentId) {
     throw new Error("Pago inválido");
   }
+
+  const owned = await prisma.payment.findFirst({
+    where: { id: paymentId, organizationId: session.organizationId },
+    select: { id: true },
+  });
+  if (!owned) throw new Error("Pago no encontrado");
 
   const payment = await voidPaymentRecord({
     paymentId,

@@ -31,10 +31,17 @@ export async function getClientSession(): Promise<ClientSession | null> {
       lastName: true,
       active: true,
       portalPinHash: true,
+      organizationId: true,
+      organization: { select: { slug: true, active: true } },
     },
   });
 
-  if (!client || !client.active || !client.portalPinHash) {
+  if (
+    !client ||
+    !client.active ||
+    !client.portalPinHash ||
+    !client.organization.active
+  ) {
     return null;
   }
 
@@ -42,6 +49,8 @@ export async function getClientSession(): Promise<ClientSession | null> {
     id: client.id,
     documentId: client.documentId,
     name: `${client.firstName} ${client.lastName}`,
+    organizationId: client.organizationId,
+    organizationSlug: client.organization.slug,
   };
 }
 

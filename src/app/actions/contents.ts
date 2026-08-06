@@ -19,6 +19,7 @@ const contentSchema = z.object({
 
 export async function createContent(formData: FormData) {
   const session = await requireSession();
+  const orgId = session.organizationId;
   const parsed = contentSchema.safeParse({
     type: formData.get("type") || "info",
     title: formData.get("title"),
@@ -31,9 +32,18 @@ export async function createContent(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
   }
 
+  if (parsed.data.clientId) {
+    const client = await prisma.client.findFirst({
+      where: { id: parsed.data.clientId, organizationId: orgId },
+      select: { id: true },
+    });
+    if (!client) throw new Error("Cliente no encontrado");
+  }
+
   await prisma.content.create({
     data: {
       ...parsed.data,
+      organizationId: orgId,
       clientId: parsed.data.clientId ?? null,
       createdById: session.id,
     },
@@ -46,8 +56,11 @@ export async function createContent(formData: FormData) {
 }
 
 export async function toggleContent(id: string) {
-  await requireSession();
-  const item = await prisma.content.findUniqueOrThrow({ where: { id } });
+  const session = await requireSession();
+  const item = await prisma.content.findFirst({
+    where: { id, organizationId: session.organizationId },
+  });
+  if (!item) throw new Error("Contenido no encontrado");
   await prisma.content.update({
     where: { id },
     data: { published: !item.published },
@@ -57,8 +70,11 @@ export async function toggleContent(id: string) {
 }
 
 export async function deleteContent(id: string) {
-  await requireSession();
-  await prisma.content.delete({ where: { id } });
+  const session = await requireSession();
+  const result = await prisma.content.deleteMany({
+    where: { id, organizationId: session.organizationId },
+  });
+  if (result.count === 0) throw new Error("Contenido no encontrado");
   revalidatePath("/contenidos");
   revalidatePath("/mi");
 }

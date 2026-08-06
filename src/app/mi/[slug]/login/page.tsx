@@ -1,6 +1,8 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ClientLoginForm } from "@/components/ClientLoginForm";
 import { getClientSession } from "@/lib/client-auth";
+import { normalizeOrgSlug } from "@/lib/company";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = {
   title: "Mi Gym — Ingresar",
@@ -10,7 +12,21 @@ export const metadata = {
   },
 };
 
-export default async function ClientLoginPage() {
+export default async function ClientOrgLoginPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug: raw } = await params;
+  const slug = normalizeOrgSlug(raw);
+  if (!slug) notFound();
+
+  const org = await prisma.organization.findFirst({
+    where: { slug, active: true },
+    select: { name: true, slug: true },
+  });
+  if (!org) notFound();
+
   const session = await getClientSession();
   if (session) redirect("/mi");
 
@@ -21,14 +37,14 @@ export default async function ClientLoginPage() {
           Mi Gym
         </p>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Ingresá el código de tu gimnasio, DNI y PIN.
+          {org.name} — accedé con tu DNI y PIN.
         </p>
         <div className="mt-6">
-          <ClientLoginForm />
+          <ClientLoginForm defaultOrgSlug={org.slug} />
         </div>
         <p className="mt-5 text-xs text-[var(--muted)]">
-          Pedí el código del gym y tu PIN en recepción. También podés usar el
-          link directo que te den (ej. /mi/tu-gym/login).
+          Pedí tu PIN en recepción. Después podés instalar esta app en el
+          celular desde el menú del navegador (“Agregar a inicio”).
         </p>
       </div>
     </div>

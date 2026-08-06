@@ -6,6 +6,8 @@ export type ClientSession = {
   id: string;
   documentId: string;
   name: string;
+  organizationId: string;
+  organizationSlug: string;
 };
 
 const SESSION_TTL = "30d";
@@ -22,6 +24,8 @@ export async function createClientSessionToken(client: ClientSession) {
   return new SignJWT({
     documentId: client.documentId,
     name: client.name,
+    organizationId: client.organizationId,
+    organizationSlug: client.organizationSlug,
     kind: "client",
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -38,10 +42,13 @@ export async function readClientSessionToken(
     const { payload } = await jwtVerify(token, getSecret());
     if (!payload.sub || payload.kind !== "client") return null;
     if (typeof payload.documentId !== "string") return null;
+    if (typeof payload.organizationId !== "string") return null;
     return {
       id: payload.sub,
       documentId: payload.documentId,
       name: String(payload.name ?? ""),
+      organizationId: payload.organizationId,
+      organizationSlug: String(payload.organizationSlug ?? ""),
     };
   } catch {
     return null;

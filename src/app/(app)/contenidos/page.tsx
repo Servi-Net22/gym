@@ -6,6 +6,7 @@ import {
   PageHeader,
   SubmitButton,
 } from "@/components/Ui";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime, fullName } from "@/lib/utils";
 
@@ -19,7 +20,9 @@ const LABELS: Record<string, string> = {
 };
 
 export default async function ContenidosPage() {
+  const session = await requireSession();
   const items = await prisma.content.findMany({
+    where: { organizationId: session.organizationId },
     orderBy: { publishedAt: "desc" },
     include: {
       client: { select: { firstName: true, lastName: true } },
@@ -74,8 +77,11 @@ export default async function ContenidosPage() {
 
       <p className="mt-4 text-sm text-[var(--muted)]">
         App del cliente:{" "}
-        <Link href="/mi/login" className="underline">
-          /mi/login
+        <Link
+          href={`/mi/${session.organizationSlug}/login`}
+          className="underline"
+        >
+          /mi/{session.organizationSlug}/login
         </Link>
       </p>
     </div>

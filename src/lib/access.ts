@@ -52,6 +52,7 @@ export async function validateAccessToken(
   if (!client.active) {
     await prisma.accessLog.create({
       data: {
+        organizationId: client.organizationId,
         clientId: client.id,
         qrToken: token,
         granted: false,
@@ -70,6 +71,7 @@ export async function validateAccessToken(
   if (!isMembershipCurrent(client.membershipEndsAt)) {
     await prisma.accessLog.create({
       data: {
+        organizationId: client.organizationId,
         clientId: client.id,
         qrToken: token,
         granted: false,
@@ -87,6 +89,7 @@ export async function validateAccessToken(
 
   await prisma.accessLog.create({
     data: {
+      organizationId: client.organizationId,
       clientId: client.id,
       qrToken: token,
       granted: true,

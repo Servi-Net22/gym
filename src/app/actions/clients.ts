@@ -12,7 +12,8 @@ import { generateQrToken } from "@/lib/utils";
 import { clientSchema } from "@/lib/validations";
 
 export async function createClient(formData: FormData) {
-  await requireSession();
+  const session = await requireSession();
+  const orgId = session.organizationId;
   const parsed = clientSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -36,7 +37,9 @@ export async function createClient(formData: FormData) {
   let planName: string | undefined;
 
   if (planId) {
-    const plan = await prisma.plan.findUnique({ where: { id: planId } });
+    const plan = await prisma.plan.findFirst({
+      where: { id: planId, organizationId: orgId },
+    });
     if (plan) {
       planName = plan.name;
       membershipEndsAt = new Date();
@@ -51,6 +54,7 @@ export async function createClient(formData: FormData) {
   const client = await prisma.client.create({
     data: {
       ...rest,
+      organizationId: orgId,
       planId,
       membershipEndsAt,
       qrToken: generateQrToken(),
@@ -59,6 +63,7 @@ export async function createClient(formData: FormData) {
   });
 
   const base = await getAppBaseUrl();
+  const portalUrl = `${base}/mi/${session.organizationSlug}/login`;
   await emailNewClient({
     to: client.email,
     firstName: client.firstName,
@@ -66,7 +71,7 @@ export async function createClient(formData: FormData) {
     planName,
     membershipEndsAt: client.membershipEndsAt,
     appUrl: `${base}/clientes/${client.id}`,
-    portalUrl: `${base}/mi/login`,
+    portalUrl,
     portalPin: pin,
     documentId: client.documentId,
   });
@@ -76,7 +81,8 @@ export async function createClient(formData: FormData) {
 }
 
 export async function updateClient(id: string, formData: FormData) {
-  await requireSession();
+  const session = await requireSession();
+  const orgId = session.organizationId;
   const parsed = clientSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -95,7 +101,20 @@ export async function updateClient(id: string, formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
   }
 
+  const existing = await prisma.client.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true },
+  });
+  if (!existing) throw new Error("Cliente no encontrado");
+
   const { planId, ...rest } = parsed.data;
+  if (planId) {
+    const plan = await prisma.plan.findFirst({
+      where: { id: planId, organizationId: orgId },
+      select: { id: true },
+    });
+    if (!plan) throw new Error("Plan no encontrado");
+  }
 
   await prisma.client.update({
     where: { id },
@@ -111,23 +130,28 @@ export async function updateClient(id: string, formData: FormData) {
 }
 
 export async function regenerateClientQr(id: string) {
-  await requireSession();
-  await prisma.client.update({
-    where: { id },
+  const session = await requireSession();
+  const result = await prisma.client.updateMany({
+    where: { id, organizationId: session.organizationId },
     data: { qrToken: generateQrToken() },
   });
+  if (result.count === 0) throw new Error("Cliente no encontrado");
   revalidatePath(`/clientes/${id}`);
 }
 
 export async function resetClientPortalPin(id: string) {
-  await requireSession();
+  const session = await requireSession();
   const pin = generatePortalPin();
+  const client = await prisma.client.findFirst({
+    where: { id, organizationId: session.organizationId },
+  });
+  if (!client) throw new Error("Cliente no encontrado");
+
   await prisma.client.update({
     where: { id },
     data: { portalPinHash: await bcrypt.hash(pin, 10) },
   });
 
-  const client = await prisma.client.findUniqueOrThrow({ where: { id } });
   const base = await getAppBaseUrl();
   await emailNewClient({
     to: client.email,
@@ -136,7 +160,7 @@ export async function resetClientPortalPin(id: string) {
     planName: null,
     membershipEndsAt: client.membershipEndsAt,
     appUrl: `${base}/clientes/${client.id}`,
-    portalUrl: `${base}/mi/login`,
+    portalUrl: `${base}/mi/${session.organizationSlug}/login`,
     portalPin: pin,
     documentId: client.documentId,
   });
@@ -146,8 +170,11 @@ export async function resetClientPortalPin(id: string) {
 }
 
 export async function toggleClient(id: string) {
-  await requireSession();
-  const client = await prisma.client.findUniqueOrThrow({ where: { id } });
+  const session = await requireSession();
+  const client = await prisma.client.findFirst({
+    where: { id, organizationId: session.organizationId },
+  });
+  if (!client) throw new Error("Cliente no encontrado");
   await prisma.client.update({
     where: { id },
     data: { active: !client.active },

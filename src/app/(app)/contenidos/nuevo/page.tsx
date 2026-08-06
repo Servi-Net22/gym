@@ -9,14 +9,16 @@ import {
   SubmitButton,
   TextArea,
 } from "@/components/Ui";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fullName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function NuevoContenidoPage() {
+  const session = await requireSession();
   const clients = await prisma.client.findMany({
-    where: { active: true },
+    where: { organizationId: session.organizationId, active: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 

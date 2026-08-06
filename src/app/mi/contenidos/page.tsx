@@ -28,6 +28,7 @@ export default async function ClientContentsPage({
   const [items, unreadTotal] = await Promise.all([
     prisma.content.findMany({
       where: {
+        organizationId: session.organizationId,
         ...visibleContentWhere(session.id),
         ...(typeFilter ? { type: typeFilter } : {}),
       },
@@ -41,7 +42,7 @@ export default async function ClientContentsPage({
         },
       },
     }),
-    countUnreadContents(session.id),
+    countUnreadContents(session.id, session.organizationId),
   ]);
 
   return (

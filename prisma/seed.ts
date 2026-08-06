@@ -20,12 +20,34 @@ function token() {
 
 async function main() {
   await prisma.accessLog.deleteMany();
+  await prisma.contentRead.deleteMany();
   await prisma.payment.deleteMany();
+  await prisma.employeeReceipt.deleteMany();
   await prisma.content.deleteMany();
   await prisma.client.deleteMany();
   await prisma.user.deleteMany();
   await prisma.employee.deleteMany();
   await prisma.plan.deleteMany();
+  await prisma.organization.deleteMany();
+
+  const orgName =
+    process.env.COMPANY_NAME?.trim() ||
+    process.env.NEXT_PUBLIC_APP_NAME?.trim() ||
+    "GymFlow";
+  const org = await prisma.organization.create({
+    data: {
+      id: "org_default_gymflow",
+      name: orgName,
+      slug: "gymflow",
+      address: process.env.COMPANY_ADDRESS?.trim() || "",
+      cuit: process.env.COMPANY_CUIT?.trim() || "",
+      lugarPago:
+        process.env.COMPANY_LUGAR_PAGO?.trim() ||
+        process.env.COMPANY_ADDRESS?.trim() ||
+        "",
+      fPagoAportes: process.env.COMPANY_F_PAGO_APORTES?.trim() || "",
+    },
+  });
 
   const passwordAdmin = await bcrypt.hash("admin123", 10);
   const passwordEmployee = await bcrypt.hash("empleado123", 10);
@@ -33,6 +55,7 @@ async function main() {
 
   const admin = await prisma.user.create({
     data: {
+      organizationId: org.id,
       email: "admin@gymflow.local",
       passwordHash: passwordAdmin,
       name: "Administrador",
@@ -42,6 +65,7 @@ async function main() {
 
   const mensual = await prisma.plan.create({
     data: {
+      organizationId: org.id,
       name: "Mensual",
       description: "Acceso libre 30 días",
       price: 35000,
@@ -51,6 +75,7 @@ async function main() {
 
   const trimestral = await prisma.plan.create({
     data: {
+      organizationId: org.id,
       name: "Trimestral",
       description: "3 meses con descuento",
       price: 90000,
@@ -60,6 +85,7 @@ async function main() {
 
   await prisma.plan.create({
     data: {
+      organizationId: org.id,
       name: "Anual",
       description: "12 meses + evaluación física",
       price: 300000,
@@ -78,6 +104,7 @@ async function main() {
 
   const clientOk = await prisma.client.create({
     data: {
+      organizationId: org.id,
       firstName: "Lucía",
       lastName: "Fernández",
       documentId: "30111222",
@@ -93,6 +120,7 @@ async function main() {
 
   await prisma.client.create({
     data: {
+      organizationId: org.id,
       firstName: "Martín",
       lastName: "Gómez",
       documentId: "28999000",
@@ -107,6 +135,7 @@ async function main() {
 
   await prisma.client.create({
     data: {
+      organizationId: org.id,
       firstName: "Ana",
       lastName: "Ruiz",
       documentId: "33444555",
@@ -121,6 +150,7 @@ async function main() {
 
   const diego = await prisma.employee.create({
     data: {
+      organizationId: org.id,
       firstName: "Diego",
       lastName: "Paz",
       documentId: "25111222",
@@ -133,6 +163,7 @@ async function main() {
 
   const sofia = await prisma.employee.create({
     data: {
+      organizationId: org.id,
       firstName: "Sofía",
       lastName: "Mena",
       documentId: "27122333",
@@ -145,6 +176,7 @@ async function main() {
 
   const julian = await prisma.employee.create({
     data: {
+      organizationId: org.id,
       firstName: "Julián",
       lastName: "Castro",
       documentId: "24133444",
@@ -157,6 +189,7 @@ async function main() {
   await prisma.user.createMany({
     data: [
       {
+        organizationId: org.id,
         email: "diego@gymflow.local",
         passwordHash: passwordEmployee,
         name: "Diego Paz",
@@ -164,6 +197,7 @@ async function main() {
         employeeId: diego.id,
       },
       {
+        organizationId: org.id,
         email: "sofia@gymflow.local",
         passwordHash: passwordEmployee,
         name: "Sofía Mena",
@@ -171,6 +205,7 @@ async function main() {
         employeeId: sofia.id,
       },
       {
+        organizationId: org.id,
         email: "julian@gymflow.local",
         passwordHash: passwordEmployee,
         name: "Julián Castro",
@@ -184,6 +219,7 @@ async function main() {
   from.setDate(from.getDate() - 10);
   await prisma.payment.create({
     data: {
+      organizationId: org.id,
       clientId: clientOk.id,
       amount: mensual.price,
       method: "transferencia",
@@ -201,6 +237,7 @@ async function main() {
   await prisma.content.createMany({
     data: [
       {
+        organizationId: org.id,
         type: "aviso",
         title: "Bienvenido a la app del gym",
         body: "Desde acá ves tu QR, el estado de tu cuenta y novedades. Más adelante también rutinas y dietas personalizadas.",
@@ -209,6 +246,7 @@ async function main() {
         published: true,
       },
       {
+        organizationId: org.id,
         type: "rutina",
         title: "Rutina inicial full body",
         body: "Día A: sentadilla 3x10, press banca 3x10, remo 3x10.\nDía B: peso muerto 3x8, press militar 3x10, dominadas asistidas 3x8.\nDescanso 60–90s entre series.",
@@ -217,6 +255,7 @@ async function main() {
         published: true,
       },
       {
+        organizationId: org.id,
         type: "dieta",
         title: "Pauta nutricional básica",
         body: "Priorizá proteína en cada comida, hidratate (2L/día) y evitá ultraprocesados los días de entrenamiento intenso.\nConsultá con nutricionista para un plan a medida.",
@@ -228,9 +267,12 @@ async function main() {
   });
 
   console.log("Seed listo.");
+  console.log(`  Org:      ${org.name} (slug: ${org.slug})`);
   console.log("  Admin:    admin@gymflow.local / admin123");
   console.log("  Empleado: sofia@gymflow.local / empleado123");
-  console.log("  Cliente PWA: DNI 30111222 / PIN 1234 → /mi/login");
+  console.log(
+    `  Cliente PWA: DNI 30111222 / PIN 1234 → /mi/${org.slug}/login`,
+  );
 }
 
 main()

@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { PageHeader, ButtonLink, DataTable } from "@/components/Ui";
 import { StatusBadge } from "@/components/StatusBadge";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate, fullName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
+  const session = await requireSession();
   const clients = await prisma.client.findMany({
+    where: { organizationId: session.organizationId },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     include: { plan: true },
   });

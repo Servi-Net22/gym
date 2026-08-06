@@ -7,13 +7,16 @@ import {
   PageHeader,
   SubmitButton,
 } from "@/components/Ui";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate, fullName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function EmpleadosPage() {
+  const session = await requireAdmin();
   const employees = await prisma.employee.findMany({
+    where: { organizationId: session.organizationId },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     include: { user: { select: { email: true, active: true } } },
   });

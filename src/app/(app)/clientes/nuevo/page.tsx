@@ -9,13 +9,15 @@ import {
   SubmitButton,
   TextArea,
 } from "@/components/Ui";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function NuevoClientePage() {
+  const session = await requireSession();
   const plans = await prisma.plan.findMany({
-    where: { active: true },
+    where: { organizationId: session.organizationId, active: true },
     orderBy: { price: "asc" },
   });
 
@@ -54,8 +56,9 @@ export default async function NuevoClientePage() {
           <TextArea label="Notas" name="notes" />
           <CheckboxField label="Cliente activo" name="active" />
           <p className="text-xs text-[var(--muted)]">
-            El cliente entra a <code>/mi/login</code> con DNI + PIN, ve su QR y
-            más adelante rutinas/dietas.
+            El cliente entra a{" "}
+            <code>/mi/{session.organizationSlug}/login</code> con DNI + PIN, ve
+            su QR y más adelante rutinas/dietas.
           </p>
           <div className="flex gap-3">
             <SubmitButton>Guardar cliente</SubmitButton>
