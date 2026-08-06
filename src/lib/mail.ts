@@ -209,6 +209,29 @@ export async function emailEmployeeCredentials(input: {
   });
 }
 
+export async function emailEmployeeReceipt(input: {
+  to: string;
+  employeeName: string;
+  amount: number;
+  periodFrom: Date;
+  periodTo: Date;
+  receiptUrl: string;
+  receiptHtml: string;
+}) {
+  return sendEmail({
+    to: input.to,
+    subject: `Recibo de sueldo — ${formatCurrency(input.amount)}`,
+    html: `
+      <p>Hola ${input.employeeName},</p>
+      <p>Adjuntamos tu recibo de sueldo correspondiente al período
+      ${formatDate(input.periodFrom)} → ${formatDate(input.periodTo)}.</p>
+      <p><a href="${input.receiptUrl}">Ver recibo online</a></p>
+      <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;" />
+      ${input.receiptHtml}
+    `,
+  });
+}
+
 export function clientDisplayName(client: {
   firstName: string;
   lastName: string;

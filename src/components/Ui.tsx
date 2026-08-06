@@ -52,15 +52,18 @@ export function ButtonLink({
 export function SubmitButton({
   children,
   variant = "primary",
+  disabled,
 }: {
   children: React.ReactNode;
   variant?: "primary" | "danger" | "ghost";
+  disabled?: boolean;
 }) {
   return (
     <button
       type="submit"
+      disabled={disabled}
       className={cn(
-        "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition",
+        "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition disabled:opacity-50",
         variant === "primary" &&
           "bg-[var(--accent)] text-[var(--accent-ink)] hover:brightness-110",
         variant === "danger" && "bg-rose-700 text-white hover:bg-rose-800",

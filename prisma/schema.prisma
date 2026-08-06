@@ -103,6 +103,7 @@ model User {
   paymentsRegistered Payment[] @relation("PaymentRegisteredBy")
   paymentsVoided     Payment[] @relation("PaymentVoidedBy")
   contentsCreated    Content[]
+  employeeReceipts   EmployeeReceipt[] @relation("EmployeeReceiptRegisteredBy")
 }
 
 model Employee {
@@ -121,6 +122,41 @@ model Employee {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   user       User?
+  receipts   EmployeeReceipt[]
+}
+
+enum EmployeeReceiptStatus {
+  draft
+  signed
+  sent
+}
+
+/// Recibo de sueldo / liquidación del empleado (historial + firma)
+model EmployeeReceipt {
+  id              String                 @id @default(cuid())
+  employeeId      String
+  employee        Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  amount          Float
+  method          String                 @default("transferencia")
+  periodFrom      DateTime
+  periodTo        DateTime
+  paidAt          DateTime               @default(now())
+  notes           String?
+  status          EmployeeReceiptStatus  @default(draft)
+  /// PNG data URL de la firma del empleado
+  signatureData   String?
+  signedAt        DateTime?
+  signedName      String?
+  /// Token público para ver/compartir el recibo (mail / WhatsApp)
+  viewToken       String                 @unique
+  emailSentAt     DateTime?
+  whatsappOpenedAt DateTime?
+  registeredById  String?
+  registeredBy    User?                  @relation("EmployeeReceiptRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([employeeId, paidAt])
 }
 
 enum PaymentMethod {

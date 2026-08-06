@@ -62,10 +62,16 @@ export default async function EmpleadosPage() {
             <td className="px-4 py-3">
               <div className="flex justify-end gap-3">
                 <Link
+                  href={`/empleados/${employee.id}`}
+                  className="text-sm font-semibold underline"
+                >
+                  Ficha / recibos
+                </Link>
+                <Link
                   href={`/empleados/${employee.id}/editar`}
                   className="text-sm font-semibold underline"
                 >
-                  Editar ficha
+                  Editar
                 </Link>
                 <form action={toggleEmployee.bind(null, employee.id)}>
                   <SubmitButton variant="ghost">

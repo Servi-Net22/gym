@@ -21,7 +21,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/api/payments/mercadopago/webhook") ||
     pathname.startsWith("/api/auth/clear-session") ||
     pathname.startsWith("/api/auth/clear-client-session") ||
-    pathname === "/manifest.webmanifest"
+    pathname === "/manifest.webmanifest" ||
+    pathname.startsWith("/recibo/")
   ) {
     return NextResponse.next();
   }
