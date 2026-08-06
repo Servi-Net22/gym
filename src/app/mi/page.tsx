@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { QrCard } from "@/components/QrCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { requireClientSession } from "@/lib/client-auth";
+import { countUnreadContents } from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
 import { formatDate, isMembershipCurrent } from "@/lib/utils";
 
@@ -8,15 +10,33 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientHomePage() {
   const session = await requireClientSession();
-  const client = await prisma.client.findUniqueOrThrow({
-    where: { id: session.id },
-    include: { plan: true },
-  });
+  const [client, unread] = await Promise.all([
+    prisma.client.findUniqueOrThrow({
+      where: { id: session.id },
+      include: { plan: true },
+    }),
+    countUnreadContents(session.id),
+  ]);
 
   const alDia = isMembershipCurrent(client.membershipEndsAt);
 
   return (
     <div className="space-y-5">
+      {unread > 0 ? (
+        <Link
+          href="/mi/contenidos"
+          className="block rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)]/50 p-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink)]">
+            Nuevos mensajes
+          </p>
+          <p className="mt-1 font-semibold text-[var(--ink)]">
+            Tenés {unread} novedad{unread === 1 ? "" : "es"} sin leer
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">Tocá para abrir →</p>
+        </Link>
+      ) : null}
+
       <section className="rounded-2xl border border-[var(--line)] bg-white/90 p-5">
         <div className="flex flex-wrap items-center gap-2">
           {client.active ? (
@@ -44,8 +64,8 @@ export default async function ClientHomePage() {
           DNI <strong className="text-[var(--ink)]">{client.documentId}</strong>
         </p>
         <p className="mt-2">
-          Más adelante vas a recibir acá rutinas, dietas e información del
-          gimnasio.
+          En Novedades ves rutinas, dietas e info del gimnasio. Los mensajes
+          nuevos se marcan hasta que los abras.
         </p>
       </section>
     </div>

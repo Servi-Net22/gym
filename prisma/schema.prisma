@@ -43,6 +43,7 @@ model Client {
   payments         Payment[]
   accessLogs       AccessLog[]
   contents         Content[]
+  contentReads     ContentRead[]
 }
 
 enum ContentType {
@@ -67,6 +68,20 @@ model Content {
   publishedAt DateTime    @default(now())
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  reads       ContentRead[]
+}
+
+/// Lectura de un contenido por un cliente (para avisos de “nuevos”)
+model ContentRead {
+  id        String   @id @default(cuid())
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
+
+  @@unique([contentId, clientId])
+  @@index([clientId])
 }
 
 enum UserRole {

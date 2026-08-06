@@ -41,6 +41,7 @@ export async function createContent(formData: FormData) {
 
   revalidatePath("/contenidos");
   revalidatePath("/mi");
+  revalidatePath("/mi/contenidos");
   redirect("/contenidos");
 }
 

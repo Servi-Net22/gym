@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { clientLogoutAction } from "@/app/actions/client-portal";
 import { getClientSession } from "@/lib/client-auth";
+import { countUnreadContents } from "@/lib/client-contents";
 
 export const metadata: Metadata = {
   title: "Mi Gym",
@@ -27,6 +28,7 @@ export default async function ClientPortalLayout({
   children: React.ReactNode;
 }) {
   const session = await getClientSession();
+  const unread = session ? await countUnreadContents(session.id) : 0;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 pb-24 pt-5">
@@ -61,9 +63,14 @@ export default async function ClientPortalLayout({
             </Link>
             <Link
               href="/mi/contenidos"
-              className="rounded-md px-2 py-2 hover:bg-white"
+              className="relative rounded-md px-2 py-2 hover:bg-white"
             >
               Novedades
+              {unread > 0 ? (
+                <span className="absolute -top-0.5 right-1 inline-flex min-w-4 items-center justify-center rounded-full bg-[var(--ink)] px-1 text-[10px] font-bold text-white">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              ) : null}
             </Link>
             <Link
               href="/mi/contenidos?tipo=rutina"
