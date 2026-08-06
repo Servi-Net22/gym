@@ -27,12 +27,34 @@ const signSchema = z.object({
   signedName: z.string().trim().min(2, "Nombre del firmante requerido"),
 });
 
-function revalidateEmployee(employeeId: string, receiptId?: string) {
+function revalidateEmployee(employeeId: string, receiptId?: string, viewToken?: string) {
   revalidatePath("/empleados");
   revalidatePath(`/empleados/${employeeId}`);
   if (receiptId) {
     revalidatePath(`/empleados/${employeeId}/recibos/${receiptId}`);
   }
+  if (viewToken) {
+    revalidatePath(`/recibo/${viewToken}`);
+  }
+}
+
+async function applySignature(
+  receiptId: string,
+  data: z.infer<typeof signSchema>,
+) {
+  if (data.signatureData.length > 1_500_000) {
+    throw new Error("La firma es demasiado grande");
+  }
+
+  return prisma.employeeReceipt.update({
+    where: { id: receiptId },
+    data: {
+      signatureData: data.signatureData,
+      signedName: data.signedName,
+      signedAt: new Date(),
+      status: "signed",
+    },
+  });
 }
 
 export async function createEmployeeReceipt(employeeId: string, formData: FormData) {
@@ -78,7 +100,7 @@ export async function createEmployeeReceipt(employeeId: string, formData: FormDa
     },
   });
 
-  revalidateEmployee(employee.id, receipt.id);
+  revalidateEmployee(employee.id, receipt.id, receipt.viewToken);
   redirect(`/empleados/${employee.id}/recibos/${receipt.id}`);
 }
 
@@ -92,23 +114,33 @@ export async function signEmployeeReceipt(receiptId: string, formData: FormData)
     throw new Error(parsed.error.issues[0]?.message ?? "Firma inválida");
   }
 
-  // Limitar tamaño aproximado del data URL (~1.5MB)
-  if (parsed.data.signatureData.length > 1_500_000) {
-    throw new Error("La firma es demasiado grande");
+  const receipt = await applySignature(receiptId, parsed.data);
+  revalidateEmployee(receipt.employeeId, receipt.id, receipt.viewToken);
+}
+
+/** Firma desde el link público (empleado, sin login). */
+export async function signEmployeeReceiptByToken(
+  viewToken: string,
+  formData: FormData,
+) {
+  const existing = await prisma.employeeReceipt.findUnique({
+    where: { viewToken },
+  });
+  if (!existing) {
+    throw new Error("Recibo no encontrado");
   }
 
-  const receipt = await prisma.employeeReceipt.update({
-    where: { id: receiptId },
-    data: {
-      signatureData: parsed.data.signatureData,
-      signedName: parsed.data.signedName,
-      signedAt: new Date(),
-      status: "signed",
-    },
+  const parsed = signSchema.safeParse({
+    signatureData: formData.get("signatureData"),
+    signedName: formData.get("signedName"),
   });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Firma inválida");
+  }
 
-  revalidateEmployee(receipt.employeeId, receipt.id);
-  revalidatePath(`/recibo/${receipt.viewToken}`);
+  const receipt = await applySignature(existing.id, parsed.data);
+  revalidateEmployee(receipt.employeeId, receipt.id, receipt.viewToken);
+  redirect(`/recibo/${viewToken}?firmado=1`);
 }
 
 export async function sendEmployeeReceiptEmail(receiptId: string) {
@@ -125,6 +157,7 @@ export async function sendEmployeeReceiptEmail(receiptId: string) {
 
   const base = await getAppBaseUrl();
   const receiptUrl = `${base}/recibo/${receipt.viewToken}`;
+  const signed = Boolean(receipt.signatureData);
   const html = receiptHtml({
     employeeName: employeeDisplayName(receipt.employee),
     documentId: receipt.employee.documentId,
@@ -139,34 +172,36 @@ export async function sendEmployeeReceiptEmail(receiptId: string) {
     signedAt: receipt.signedAt,
     signatureData: receipt.signatureData,
     receiptId: receipt.id,
+    receiptUrl,
   });
 
   const result = await emailEmployeeReceipt({
     to,
-    employeeName: employeeDisplayName(receipt.employee),
+    employeeName: receipt.employee.firstName,
     amount: receipt.amount,
     periodFrom: receipt.periodFrom,
     periodTo: receipt.periodTo,
     receiptUrl,
     receiptHtml: html,
+    signed,
   });
 
   if ("skipped" in result && result.skipped) {
     throw new Error("Email no configurado (RESEND_API_KEY)");
   }
   if ("ok" in result && result.ok === false) {
-    throw new Error("No se pudo enviar el email");
+    throw new Error("No se pudo enviar el email. Revisá Resend y el dominio del remitente.");
   }
 
   await prisma.employeeReceipt.update({
     where: { id: receipt.id },
     data: {
       emailSentAt: new Date(),
-      status: receipt.signatureData ? "sent" : receipt.status,
+      status: signed ? "sent" : receipt.status,
     },
   });
 
-  revalidateEmployee(receipt.employeeId, receipt.id);
+  revalidateEmployee(receipt.employeeId, receipt.id, receipt.viewToken);
 }
 
 export async function markWhatsAppOpened(receiptId: string) {
@@ -178,5 +213,5 @@ export async function markWhatsAppOpened(receiptId: string) {
       status: "sent",
     },
   });
-  revalidateEmployee(receipt.employeeId, receipt.id);
+  revalidateEmployee(receipt.employeeId, receipt.id, receipt.viewToken);
 }

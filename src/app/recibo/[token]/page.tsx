@@ -1,19 +1,21 @@
 import { notFound } from "next/navigation";
-import {
-  employeeDisplayName,
-  receiptMethodLabel,
-} from "@/lib/employee-receipts";
+import { signEmployeeReceiptByToken } from "@/app/actions/employee-receipts";
+import { PrintButton } from "@/components/PrintButton";
+import { ReceiptDocument } from "@/components/ReceiptDocument";
+import { SignaturePad } from "@/components/SignaturePad";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicReciboPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ firmado?: string }>;
 }) {
   const { token } = await params;
+  const { firmado } = await searchParams;
   const receipt = await prisma.employeeReceipt.findUnique({
     where: { viewToken: token },
     include: { employee: true },
@@ -21,71 +23,55 @@ export default async function PublicReciboPage({
   if (!receipt) notFound();
 
   const gym = process.env.NEXT_PUBLIC_APP_NAME ?? "GymFlow";
+  const signAction = signEmployeeReceiptByToken.bind(null, token);
+  const justSigned = firmado === "1";
 
   return (
-    <div className="mx-auto min-h-screen max-w-lg px-4 py-8">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-        {gym}
-      </p>
-      <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-wide">
-        Recibo de sueldo
-      </h1>
-      <p className="text-sm text-[var(--muted)]">
-        #{receipt.id.slice(-8).toUpperCase()}
-      </p>
-
-      <article className="mt-6 space-y-3 rounded-xl border border-[var(--line)] bg-white p-5 text-sm">
-        <p>
-          <strong>Empleado:</strong> {employeeDisplayName(receipt.employee)}
-        </p>
-        <p>
-          <strong>Documento:</strong> {receipt.employee.documentId}
-        </p>
-        <p>
-          <strong>Cargo:</strong> {receipt.employee.role}
-        </p>
-        <p>
-          <strong>Período:</strong> {formatDate(receipt.periodFrom)} →{" "}
-          {formatDate(receipt.periodTo)}
-        </p>
-        <p>
-          <strong>Fecha de pago:</strong> {formatDate(receipt.paidAt)}
-        </p>
-        <p>
-          <strong>Medio:</strong> {receiptMethodLabel(receipt.method)}
-        </p>
-        <p className="text-xl font-semibold">
-          Neto: {formatCurrency(receipt.amount)}
-        </p>
-        {receipt.notes ? (
-          <p>
-            <strong>Notas:</strong> {receipt.notes}
+    <div className="mx-auto min-h-screen max-w-lg px-4 py-8 print:max-w-none print:px-0 print:py-0">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
+            {gym}
           </p>
-        ) : null}
-
-        <div className="border-t border-[var(--line)] pt-4">
-          {receipt.signatureData ? (
-            <>
-              <p className="mb-2 text-sm">
-                <strong>Firma:</strong> {receipt.signedName} ·{" "}
-                {formatDateTime(receipt.signedAt)}
-              </p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={receipt.signatureData}
-                alt="Firma"
-                className="max-w-full rounded-md border border-[var(--line)]"
-              />
-            </>
-          ) : (
-            <p className="text-[var(--muted)]">Pendiente de firma</p>
-          )}
+          <p className="text-sm text-[var(--muted)]">
+            {receipt.signatureData
+              ? "Recibo firmado — podés guardarlo o imprimirlo"
+              : "Revisá los datos y firmá abajo"}
+          </p>
         </div>
-      </article>
+        <PrintButton />
+      </div>
 
-      <p className="mt-4 text-center text-xs text-[var(--muted)]">
-        Constancia generada por {gym}. Podés guardar o imprimir esta página.
-      </p>
+      {justSigned ? (
+        <p className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 print:hidden">
+          Firma guardada. Ya podés imprimir o guardar el recibo como PDF.
+        </p>
+      ) : null}
+
+      <ReceiptDocument
+        receipt={receipt}
+        employee={receipt.employee}
+        gymName={gym}
+      />
+
+      {!receipt.signatureData ? (
+        <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-5 print:hidden">
+          <h2 className="mb-1 text-lg font-semibold">Tu firma</h2>
+          <p className="mb-4 text-sm text-[var(--muted)]">
+            Firmá con el dedo o el mouse. Con eso confirmás haber recibido el
+            pago.
+          </p>
+          <SignaturePad
+            action={signAction}
+            defaultSignedName={`${receipt.employee.firstName} ${receipt.employee.lastName}`}
+            submitLabel="Firmar y confirmar recepción"
+          />
+        </section>
+      ) : (
+        <div className="mt-5 flex justify-center print:hidden">
+          <PrintButton label="Imprimir o guardar como PDF" />
+        </div>
+      )}
     </div>
   );
 }

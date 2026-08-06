@@ -5,16 +5,21 @@ import { useEffect, useRef, useState } from "react";
 type Props = {
   name?: string;
   defaultSignedName?: string;
+  /** Server action que recibe FormData con signatureData + signedName */
   action: (formData: FormData) => void | Promise<void>;
+  submitLabel?: string;
 };
 
 export function SignaturePad({
   name = "signatureData",
   defaultSignedName = "",
   action,
+  submitLabel = "Guardar firma en el recibo",
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hiddenRef = useRef<HTMLInputElement>(null);
   const drawing = useRef(false);
+  const hasStrokeRef = useRef(false);
   const [hasStroke, setHasStroke] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,24 +29,30 @@ export function SignaturePad({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const resize = () => {
-      const ratio = window.devicePixelRatio || 1;
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
+    const paintBlank = () => {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const width = Math.max(canvas.clientWidth, 1);
+      const height = Math.max(canvas.clientHeight, 1);
       canvas.width = Math.floor(width * ratio);
       canvas.height = Math.floor(height * ratio);
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       ctx.strokeStyle = "#111";
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, width, height);
+      hasStrokeRef.current = false;
       setHasStroke(false);
     };
 
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
+    paintBlank();
+
+    const ro = new ResizeObserver(() => {
+      if (!hasStrokeRef.current) paintBlank();
+    });
+    ro.observe(canvas);
+    return () => ro.disconnect();
   }, []);
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -50,6 +61,7 @@ export function SignaturePad({
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    e.preventDefault();
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -58,20 +70,32 @@ export function SignaturePad({
     const { x, y } = pos(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
+    ctx.lineTo(x + 0.01, y + 0.01);
+    ctx.stroke();
+    hasStrokeRef.current = true;
+    setHasStroke(true);
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawing.current) return;
+    e.preventDefault();
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
     const { x, y } = pos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
+    hasStrokeRef.current = true;
     setHasStroke(true);
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawing.current) return;
     drawing.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
   }
 
   function clear() {
@@ -80,23 +104,27 @@ export function SignaturePad({
     if (!canvas || !ctx) return;
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    hasStrokeRef.current = false;
     setHasStroke(false);
     setError(null);
+    if (hiddenRef.current) hiddenRef.current.value = "";
   }
 
-  async function onSubmit(formData: FormData) {
+  function prepareSubmit(e: React.FormEvent<HTMLFormElement>) {
     const canvas = canvasRef.current;
-    if (!canvas || !hasStroke) {
-      setError("Pedile al empleado que firme en el recuadro");
+    if (!canvas || !hasStrokeRef.current || !hiddenRef.current) {
+      e.preventDefault();
+      setError("Firmá en el recuadro antes de guardar");
       return;
     }
-    formData.set(name, canvas.toDataURL("image/png"));
+    hiddenRef.current.value = canvas.toDataURL("image/png");
     setError(null);
-    await action(formData);
   }
 
   return (
-    <form action={onSubmit} className="space-y-3">
+    <form action={action} onSubmit={prepareSubmit} className="space-y-3">
+      <input ref={hiddenRef} type="hidden" name={name} defaultValue="" />
+
       <label className="block space-y-1.5">
         <span className="text-sm font-medium">Nombre del firmante</span>
         <input
@@ -111,11 +139,12 @@ export function SignaturePad({
         <p className="mb-1.5 text-sm font-medium">Firma</p>
         <canvas
           ref={canvasRef}
-          className="h-40 w-full touch-none rounded-md border border-[var(--line)] bg-white"
+          className="h-44 w-full touch-none rounded-md border border-[var(--line)] bg-white"
+          style={{ touchAction: "none" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
+          onPointerCancel={onPointerUp}
         />
         <div className="mt-2 flex gap-2">
           <button
@@ -136,9 +165,10 @@ export function SignaturePad({
 
       <button
         type="submit"
-        className="rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)]"
+        disabled={!hasStroke}
+        className="rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-60"
       >
-        Guardar firma en el recibo
+        {submitLabel}
       </button>
     </form>
   );

@@ -5,9 +5,11 @@ import { markWhatsAppOpened } from "@/app/actions/employee-receipts";
 export function WhatsAppShareButton({
   receiptId,
   href,
+  label = "Enviar por WhatsApp",
 }: {
   receiptId: string;
   href: string;
+  label?: string;
 }) {
   return (
     <a
@@ -19,7 +21,7 @@ export function WhatsAppShareButton({
       }}
       className="inline-flex rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold hover:bg-[var(--accent-soft)]"
     >
-      Enviar por WhatsApp
+      {label}
     </a>
   );
 }

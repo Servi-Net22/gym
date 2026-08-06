@@ -217,17 +217,41 @@ export async function emailEmployeeReceipt(input: {
   periodTo: Date;
   receiptUrl: string;
   receiptHtml: string;
+  signed?: boolean;
 }) {
+  const signed = Boolean(input.signed);
+  const subject = signed
+    ? `Tu recibo de sueldo — ${formatCurrency(input.amount)}`
+    : `Firmá tu recibo de sueldo — ${formatCurrency(input.amount)}`;
+
   return sendEmail({
     to: input.to,
-    subject: `Recibo de sueldo — ${formatCurrency(input.amount)}`,
+    subject,
     html: `
-      <p>Hola ${input.employeeName},</p>
-      <p>Adjuntamos tu recibo de sueldo correspondiente al período
-      ${formatDate(input.periodFrom)} → ${formatDate(input.periodTo)}.</p>
-      <p><a href="${input.receiptUrl}">Ver recibo online</a></p>
-      <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;" />
-      ${input.receiptHtml}
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+        <p>Hola ${input.employeeName},</p>
+        <p>
+          ${
+            signed
+              ? `Ya está disponible tu recibo de sueldo firmado por el período
+                 <strong>${formatDate(input.periodFrom)} → ${formatDate(input.periodTo)}</strong>.`
+              : `Te enviamos tu recibo de sueldo del período
+                 <strong>${formatDate(input.periodFrom)} → ${formatDate(input.periodTo)}</strong>.
+                 Abrí el link, revisá los datos y <strong>firmá en pantalla</strong>.`
+          }
+        </p>
+        <p style="margin:24px 0;">
+          <a href="${input.receiptUrl}"
+             style="display:inline-block;background:#c8f542;color:#111;text-decoration:none;font-weight:700;padding:14px 20px;border-radius:8px;">
+            ${signed ? "Ver / imprimir recibo" : "Abrir y firmar recibo"}
+          </a>
+        </p>
+        <p style="color:#666;font-size:13px;">Si el botón no funciona, copiá este enlace:<br/>
+          <a href="${input.receiptUrl}">${input.receiptUrl}</a>
+        </p>
+        <hr style="border:none;border-top:1px solid #ddd;margin:24px 0;" />
+        ${input.receiptHtml}
+      </div>
     `,
   });
 }
