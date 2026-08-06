@@ -13,6 +13,7 @@ import {
   markContentAsRead,
   visibleContentWhere,
 } from "@/lib/client-contents";
+import { sessionCookieOptions } from "@/lib/cookie-options";
 import { prisma } from "@/lib/prisma";
 
 export type ClientLoginState = { error?: string };
@@ -48,13 +49,11 @@ export async function clientLoginAction(
   });
 
   const jar = await cookies();
-  jar.set(CLIENT_SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  jar.set(
+    CLIENT_SESSION_COOKIE,
+    token,
+    await sessionCookieOptions(60 * 60 * 24 * 30),
+  );
 
   redirect("/mi");
 }

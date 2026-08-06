@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, createSessionToken, verifyPassword } from "@/lib/auth";
+import { sessionCookieOptions } from "@/lib/cookie-options";
 
 export type LoginState = {
   error?: string;
@@ -41,13 +42,7 @@ export async function loginAction(
   });
 
   const jar = await cookies();
-  jar.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
+  jar.set(SESSION_COOKIE, token, await sessionCookieOptions(60 * 60 * 8));
 
   redirect("/");
 }
