@@ -60,6 +60,7 @@ export async function createClient(formData: FormData) {
       membershipEndsAt,
       qrToken: generateQrToken(),
       portalPinHash,
+      portalPin: pin,
     },
   });
 
@@ -150,7 +151,10 @@ export async function resetClientPortalPin(id: string) {
 
   await prisma.client.update({
     where: { id },
-    data: { portalPinHash: await bcrypt.hash(pin, 10) },
+    data: {
+      portalPinHash: await bcrypt.hash(pin, 10),
+      portalPin: pin,
+    },
   });
 
   const base = await getAppBaseUrl();

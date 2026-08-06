@@ -102,14 +102,27 @@ export default async function ClienteDetallePage({
               value={client.emergencyContact}
             />
             <Item label="Notas" value={client.notes} />
-            <Item
-              label="Portal PWA"
-              value={
-                client.portalPinHash
-                  ? "Habilitado (DNI + PIN)"
-                  : "Sin PIN — regenerar"
-              }
-            />
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                PIN portal
+              </dt>
+              <dd className="text-sm">
+                {client.portalPin ? (
+                  <>
+                    <span className="font-mono text-lg font-semibold tracking-widest">
+                      {client.portalPin}
+                    </span>
+                    <span className="ml-2 text-[var(--muted)]">
+                      (DNI + PIN)
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[var(--muted)]">
+                    Sin PIN — usá «Nuevo PIN portal»
+                  </span>
+                )}
+              </dd>
+            </div>
           </dl>
 
           <div className="flex flex-wrap gap-2 pt-2">

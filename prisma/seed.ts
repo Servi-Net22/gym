@@ -142,6 +142,7 @@ async function main() {
       membershipEndsAt: endsOk,
       qrToken: token(),
       portalPinHash,
+      portalPin: "1234",
       emergencyContact: "Carlos Fernández 11-5555-1002",
     },
   });
@@ -158,6 +159,7 @@ async function main() {
       membershipEndsAt: endsSoon,
       qrToken: token(),
       portalPinHash,
+      portalPin: "1234",
     },
   });
 
@@ -172,6 +174,7 @@ async function main() {
       membershipEndsAt: expired,
       qrToken: token(),
       portalPinHash,
+      portalPin: "1234",
       notes: "Deuda pendiente — no ingresar hasta regularizar",
     },
   });
