@@ -27,7 +27,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
   );
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-[var(--line)] bg-[var(--panel)]">
+    <aside className="no-print flex w-64 shrink-0 flex-col border-r border-[var(--line)] bg-[var(--panel)] print:hidden">
       <div className="border-b border-[var(--line)] px-6 py-7">
         <p className="font-[family-name:var(--font-display)] text-3xl tracking-wide text-[var(--ink)]">
           GymFlow

@@ -38,13 +38,13 @@ export function ReceiptDocument({
   const signed = Boolean(receipt.signatureData);
 
   return (
-    <article className="receipt-doc overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-sm">
-      <header className="border-b border-[var(--line)] bg-[linear-gradient(135deg,#f7f8f2,#eef6c8)] px-5 py-5">
+    <article className="receipt-doc overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-sm print:shadow-none">
+      <header className="border-b border-[var(--line)] bg-[linear-gradient(135deg,#f7f8f2,#eef6c8)] px-5 py-5 print:py-4">
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
           {gym}
         </p>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
-          <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide print:text-2xl">
             Recibo de sueldo
           </h1>
           <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold">
@@ -56,7 +56,7 @@ export function ReceiptDocument({
         </p>
       </header>
 
-      <div className="space-y-5 px-5 py-5 text-sm">
+      <div className="space-y-5 px-5 py-5 text-sm print:space-y-4 print:py-4">
         <section className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -84,11 +84,11 @@ export function ReceiptDocument({
           </div>
         </section>
 
-        <section className="rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-4">
+        <section className="rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-4 print:rounded-none">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Neto percibido
           </p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-4xl tracking-wide">
+          <p className="mt-1 font-[family-name:var(--font-display)] text-4xl tracking-wide print:text-3xl">
             {formatCurrency(receipt.amount)}
           </p>
           {receipt.notes ? (
@@ -116,7 +116,7 @@ export function ReceiptDocument({
               <img
                 src={receipt.signatureData!}
                 alt="Firma del empleado"
-                className="max-h-28 max-w-full rounded-md border border-[var(--line)] bg-white"
+                className="max-h-28 max-w-full rounded-md border border-[var(--line)] bg-white print:max-h-24"
               />
             </div>
           ) : (
@@ -128,8 +128,7 @@ export function ReceiptDocument({
       </div>
 
       <footer className="border-t border-[var(--line)] px-5 py-3 text-xs text-[var(--muted)]">
-        Documento generado por {gym}. Conservar como constancia. Podés imprimir
-        o guardar como PDF desde el navegador.
+        Documento generado por {gym}. Conservar como constancia.
       </footer>
     </article>
   );
