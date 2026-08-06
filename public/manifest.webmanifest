@@ -1,0 +1,25 @@
+{
+  "name": "Mi Gym — GymFlow",
+  "short_name": "Mi Gym",
+  "description": "QR de ingreso, cuenta al día y contenidos del gimnasio",
+  "start_url": "/mi",
+  "scope": "/mi",
+  "display": "standalone",
+  "background_color": "#f3f1ea",
+  "theme_color": "#c8f542",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

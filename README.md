@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GymFlow — Gestión de gimnasio
 
-## Getting Started
+Sistema para clientes, empleados, planes, pagos (efectivo / transferencia / Mercado Pago), QR y barrera.
 
-First, run the development server:
+## Stack de producción
+
+| Pieza | Servicio |
+|-------|----------|
+| App | **Vercel** (Next.js) |
+| Base de datos | **Supabase** (PostgreSQL) |
+| Emails | **Resend** |
+| Dominio | **Donweb** (DNS → Vercel) |
+
+Guía completa: [DEPLOY.md](./DEPLOY.md)
+
+## Desarrollo local
+
+1. Copiá `.env.example` → `.env` y completá `DATABASE_URL` + `DIRECT_URL` de Supabase.
+2. Instalación:
 
 ```bash
+npm install
+npx prisma migrate deploy
+npm run db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Abrí [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Usuarios demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| Admin | `admin@gymflow.local` | `admin123` |
+| Empleado | `sofia@gymflow.local` | `empleado123` |
 
-## Learn More
+### Permisos
 
-To learn more about Next.js, take a look at the following resources:
+| Acción | Admin | Empleado |
+|--------|-------|----------|
+| Empleados / sueldos | Sí | No |
+| Clientes, planes, pagos, barrera | Sí | Sí |
+| Anular pagos | Sí | No |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Módulos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Panel, Clientes (formulario + QR), Empleados, Planes, Pagos, Acceso/Barrera
+- **App cliente PWA** en `/mi` (DNI + PIN, QR, cuenta, novedades/rutinas/dietas)
+- Contenidos PWA desde el panel (`/contenidos`)
+- Pagos: registro manual o cobro automático
+- Auditoría: quién registró / quién anuló + motivo
+- Emails (Resend): altas, pagos, links MP, anulaciones
 
-## Deploy on Vercel
+### App del cliente (demo)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- URL: `/mi/login`
+- DNI `30111222` · PIN `1234`
+- En el celular: menú del navegador → “Agregar a pantalla de inicio”
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Barrera QR
+
+```http
+POST /api/access/validate
+x-api-key: <BARRIER_API_KEY>
+{ "qrToken": "GYM-..." }
+```

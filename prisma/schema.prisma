@@ -1,0 +1,163 @@
+// Sistema de gestión de gimnasio
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  price        Float
+  durationDays Int
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  clients      Client[]
+}
+
+model Client {
+  id               String      @id @default(cuid())
+  firstName        String
+  lastName         String
+  documentId       String      @unique
+  email            String?
+  phone            String?
+  birthDate        DateTime?
+  address          String?
+  emergencyContact String?
+  notes            String?
+  active           Boolean     @default(true)
+  qrToken          String      @unique
+  /// PIN hasheado para ingresar al portal / PWA del cliente
+  portalPinHash    String?
+  membershipEndsAt DateTime?
+  planId           String?
+  plan             Plan?       @relation(fields: [planId], references: [id])
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  payments         Payment[]
+  accessLogs       AccessLog[]
+  contents         Content[]
+}
+
+enum ContentType {
+  info
+  rutina
+  dieta
+  aviso
+}
+
+/// Contenidos para el PWA del cliente (info, rutinas, dietas, avisos)
+model Content {
+  id          String      @id @default(cuid())
+  type        ContentType @default(info)
+  title       String
+  body        String
+  /// null = visible para todos los clientes activos
+  clientId    String?
+  client      Client?     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  published   Boolean     @default(true)
+  createdById String?
+  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  publishedAt DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  role             UserRole  @default(EMPLOYEE)
+  active           Boolean   @default(true)
+  employeeId       String?   @unique
+  employee         Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  paymentsRegistered Payment[] @relation("PaymentRegisteredBy")
+  paymentsVoided     Payment[] @relation("PaymentVoidedBy")
+  contentsCreated    Content[]
+}
+
+model Employee {
+  id         String    @id @default(cuid())
+  firstName  String
+  lastName   String
+  documentId String    @unique
+  email      String?
+  phone      String?
+  role       String
+  salary     Float?
+  hireDate   DateTime  @default(now())
+  address    String?
+  notes      String?
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User?
+}
+
+enum PaymentMethod {
+  efectivo
+  transferencia
+  mercadopago
+}
+
+enum PaymentStatus {
+  pending
+  confirmed
+  cancelled
+  rejected
+}
+
+enum PaymentSource {
+  manual
+  automatic
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  clientId       String
+  client         Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  amount         Float
+  method         PaymentMethod @default(efectivo)
+  status         PaymentStatus @default(confirmed)
+  source         PaymentSource @default(manual)
+  periodFrom     DateTime
+  periodTo       DateTime
+  paidAt         DateTime?
+  notes          String?
+  reference      String?       // alias / concepto de transferencia o external_reference MP
+  externalId     String?       // id de pago en Mercado Pago
+  preferenceId   String?
+  checkoutUrl    String?
+  registeredById String?
+  registeredBy   User?         @relation("PaymentRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+  voidedById     String?
+  voidedBy       User?         @relation("PaymentVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidedAt       DateTime?
+  voidReason     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model AccessLog {
+  id        String   @id @default(cuid())
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  qrToken   String
+  granted   Boolean
+  reason    String
+  scannedAt DateTime @default(now())
+}
