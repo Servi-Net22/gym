@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
+import { MarkContentRead } from "@/components/MarkContentRead";
 import { requireClientSession } from "@/lib/client-auth";
-import {
-  markContentAsRead,
-  visibleContentWhere,
-} from "@/lib/client-contents";
+import { visibleContentWhere } from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
 
@@ -41,14 +38,12 @@ export default async function ClientContentDetailPage({
 
   if (!item) notFound();
 
-  if (item.reads.length === 0) {
-    await markContentAsRead(session.id, item.id);
-    revalidatePath("/mi");
-    revalidatePath("/mi/contenidos");
-  }
+  const unread = item.reads.length === 0;
 
   return (
     <div className="space-y-4">
+      <MarkContentRead contentId={item.id} unread={unread} />
+
       <Link
         href="/mi/contenidos"
         className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--ink)]"
@@ -64,9 +59,15 @@ export default async function ClientContentDetailPage({
           <span className="text-xs text-[var(--muted)]">
             {formatDateTime(item.publishedAt)}
           </span>
-          <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-            Leído
-          </span>
+          {unread ? (
+            <span className="rounded bg-[var(--ink)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              Nuevo
+            </span>
+          ) : (
+            <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+              Leído
+            </span>
+          )}
         </div>
 
         <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl tracking-wide">

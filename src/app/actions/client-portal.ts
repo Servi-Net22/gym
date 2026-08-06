@@ -1,12 +1,18 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import {
   CLIENT_SESSION_COOKIE,
   createClientSessionToken,
+  requireClientSession,
 } from "@/lib/client-auth";
+import {
+  markContentAsRead,
+  visibleContentWhere,
+} from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
 
 export type ClientLoginState = { error?: string };
@@ -57,4 +63,23 @@ export async function clientLogoutAction() {
   const jar = await cookies();
   jar.delete(CLIENT_SESSION_COOKIE);
   redirect("/mi/login");
+}
+
+/** Marca un contenido como leído (llamar desde el cliente, no durante el render RSC). */
+export async function markContentReadAction(contentId: string) {
+  const session = await requireClientSession();
+  const content = await prisma.content.findFirst({
+    where: {
+      id: contentId,
+      ...visibleContentWhere(session.id),
+    },
+    select: { id: true },
+  });
+  if (!content) return { ok: false as const };
+
+  await markContentAsRead(session.id, content.id);
+  revalidatePath("/mi");
+  revalidatePath("/mi/contenidos");
+  revalidatePath(`/mi/contenidos/${content.id}`);
+  return { ok: true as const };
 }
