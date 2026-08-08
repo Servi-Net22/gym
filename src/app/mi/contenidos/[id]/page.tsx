@@ -84,7 +84,7 @@ export default async function ClientContentDetailPage({
             {formatDateTime(item.publishedAt)}
           </span>
           {unread ? (
-            <span className="rounded bg-[var(--ink)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            <span className="rounded bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
               Nuevo
             </span>
           ) : (

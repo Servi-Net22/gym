@@ -42,8 +42,8 @@ function buildHref(params: {
 
 function chipClass(active: boolean) {
   return active
-    ? "rounded-full border border-[var(--ink)] bg-[var(--ink)] px-3 py-1 font-semibold text-white"
-    : "rounded-full border border-[var(--line)] bg-white px-3 py-1 font-semibold";
+    ? "rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1 font-semibold text-[var(--ink)] hover:bg-[var(--accent)]"
+    : "rounded-full border border-[var(--line)] bg-white px-3 py-1 font-semibold text-[var(--ink)] hover:bg-[var(--accent-soft)]";
 }
 
 export default async function ClientContentsPage({
@@ -242,7 +242,7 @@ export default async function ClientContentsPage({
                         {LABELS[item.type] ?? item.type}
                       </span>
                       {unread ? (
-                        <span className="rounded bg-[var(--ink)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        <span className="rounded bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
                           Nuevo
                         </span>
                       ) : null}

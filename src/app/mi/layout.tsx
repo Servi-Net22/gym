@@ -74,7 +74,7 @@ export default async function ClientPortalLayout({
             >
               Novedades
               {unread > 0 ? (
-                <span className="absolute -top-0.5 right-1 inline-flex min-w-4 items-center justify-center rounded-full bg-[var(--ink)] px-1 text-[10px] font-bold text-white">
+                <span className="absolute -top-0.5 right-1 inline-flex min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-[var(--accent-ink)]">
                   {unread > 9 ? "9+" : unread}
                 </span>
               ) : null}
