@@ -32,12 +32,10 @@ const GENDER_LABELS: Record<string, string> = {
 function buildHref(params: {
   tipo?: string;
   genero?: string;
-  dias?: string;
 }) {
   const q = new URLSearchParams();
   if (params.tipo) q.set("tipo", params.tipo);
   if (params.genero) q.set("genero", params.genero);
-  if (params.dias) q.set("dias", params.dias);
   const s = q.toString();
   return s ? `/mi/contenidos?${s}` : "/mi/contenidos";
 }
@@ -54,11 +52,10 @@ export default async function ClientContentsPage({
   searchParams: Promise<{
     tipo?: string;
     genero?: string;
-    dias?: string;
   }>;
 }) {
   const session = await requireClientSession();
-  const { tipo, genero, dias } = await searchParams;
+  const { tipo, genero } = await searchParams;
 
   const typeFilter =
     tipo && ["info", "rutina", "dieta", "aviso"].includes(tipo)
@@ -66,20 +63,16 @@ export default async function ClientContentsPage({
       : undefined;
 
   const isPresetView = typeFilter === "rutina" || typeFilter === "dieta";
-  const needsLevel = isPresetView;
-  const missingLevel = needsLevel && !session.trainingLevel;
+  const missingLevel = isPresetView && !session.trainingLevel;
+  const missingDays = isPresetView && session.daysPerWeek == null;
+  const blockedPreset = missingLevel || missingDays;
 
   const genderFilter =
     isPresetView &&
+    !blockedPreset &&
     genero &&
     (CONTENT_GENDERS as readonly string[]).includes(genero)
       ? genero
-      : undefined;
-
-  const daysNum = dias ? Number(dias) : NaN;
-  const daysFilter =
-    isPresetView && Number.isInteger(daysNum) && daysNum >= 2 && daysNum <= 6
-      ? daysNum
       : undefined;
 
   const presetFilters: Array<Record<string, unknown>> = [];
@@ -88,23 +81,26 @@ export default async function ClientContentsPage({
       OR: [{ gender: genderFilter }, { gender: "todos" }],
     });
   }
-  if (daysFilter != null) {
-    presetFilters.push({
-      OR: [{ daysPerWeek: daysFilter }, { daysPerWeek: null }],
-    });
-  }
 
-  const [items, unreadTotal] = missingLevel
-    ? [[], await countUnreadContents(
-        session.id,
-        session.organizationId,
-        session.trainingLevel,
-      )]
+  const [items, unreadTotal] = blockedPreset
+    ? [
+        [],
+        await countUnreadContents(
+          session.id,
+          session.organizationId,
+          session.trainingLevel,
+          session.daysPerWeek,
+        ),
+      ]
     : await Promise.all([
         prisma.content.findMany({
           where: {
             ...tenantWhere(session),
-            ...visibleContentWhere(session.id, session.trainingLevel),
+            ...visibleContentWhere(
+              session.id,
+              session.trainingLevel,
+              session.daysPerWeek,
+            ),
             ...(typeFilter ? { type: typeFilter } : {}),
             ...(presetFilters.length > 0 ? { AND: presetFilters } : {}),
           },
@@ -122,13 +118,13 @@ export default async function ClientContentsPage({
           session.id,
           session.organizationId,
           session.trainingLevel,
+          session.daysPerWeek,
         ),
       ]);
 
   const base = {
     tipo: typeFilter,
     genero: genderFilter,
-    dias: daysFilter != null ? String(daysFilter) : undefined,
   };
 
   return (
@@ -139,9 +135,9 @@ export default async function ClientContentsPage({
         </h1>
         <p className="text-sm text-[var(--muted)]">
           {isPresetView
-            ? session.trainingLevel
-              ? `Tu nivel: ${CONTENT_LEVEL_LABELS[session.trainingLevel]}. Filtrá por género y días.`
-              : "Las rutinas y dietas se muestran según tu nivel de entrenamiento."
+            ? session.trainingLevel && session.daysPerWeek != null
+              ? `Tu nivel: ${CONTENT_LEVEL_LABELS[session.trainingLevel]} · ${session.daysPerWeek} días/sem. Filtrá por género.`
+              : "Las rutinas y dietas se muestran según tu nivel y días de asistencia."
             : "Info, rutinas y dietas que te envía el gimnasio."}
           {unreadTotal > 0
             ? ` Tenés ${unreadTotal} sin leer.`
@@ -179,7 +175,7 @@ export default async function ClientContentsPage({
         ))}
       </div>
 
-      {isPresetView && session.trainingLevel ? (
+      {isPresetView && session.trainingLevel && session.daysPerWeek != null ? (
         <div className="space-y-3 rounded-xl border border-[var(--line)] bg-white/80 p-3">
           <div>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -203,28 +199,6 @@ export default async function ClientContentsPage({
               ))}
             </div>
           </div>
-          <div>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Días / semana
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Link
-                href={buildHref({ ...base, dias: undefined })}
-                className={chipClass(daysFilter == null)}
-              >
-                Todos
-              </Link>
-              {[2, 3, 4, 5, 6].map((n) => (
-                <Link
-                  key={n}
-                  href={buildHref({ ...base, dias: String(n) })}
-                  className={chipClass(daysFilter === n)}
-                >
-                  {n}
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
       ) : null}
 
@@ -232,13 +206,15 @@ export default async function ClientContentsPage({
         <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
           Pedí que te asignen un nivel en recepción
         </p>
+      ) : missingDays ? (
+        <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
+          Pedí que te asignen los días por semana en recepción
+        </p>
       ) : items.length === 0 ? (
         <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
           Todavía no hay contenidos
           {typeFilter ? ` de ${LABELS[typeFilter]}` : ""}
-          {isPresetView && (genderFilter || daysFilter != null)
-            ? " con esos filtros"
-            : ""}
+          {isPresetView && genderFilter ? " con esos filtros" : ""}
           . Cuando el gimnasio publique, van a aparecer acá.
         </p>
       ) : (

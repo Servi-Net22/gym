@@ -20,6 +20,12 @@ export const trainingLevelSchema = z.enum([
   "avanzado",
 ]);
 
+export const daysPerWeekSchema = z.coerce
+  .number()
+  .int()
+  .min(2, "Días inválidos")
+  .max(6, "Días inválidos");
+
 export const clientSchema = z.object({
   firstName: z.string().trim().min(2, "Nombre requerido"),
   lastName: z.string().trim().min(2, "Apellido requerido"),
@@ -42,6 +48,9 @@ export const clientSchema = z.object({
   trainingLevel: z
     .union([trainingLevelSchema, z.literal(""), z.undefined()])
     .transform((v) => (v && v.length > 0 ? v : null)),
+  daysPerWeek: z
+    .union([daysPerWeekSchema, z.literal(""), z.undefined()])
+    .transform((v) => (typeof v === "number" && !Number.isNaN(v) ? v : null)),
   planId: z
     .string()
     .optional()

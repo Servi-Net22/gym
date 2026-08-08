@@ -19,6 +19,10 @@ export const CONTENT_LEVEL_LABELS: Record<ContentLevelValue, string> = {
 export const CONTENT_GENDERS = ["hombre", "mujer", "todos"] as const;
 export type ContentGenderValue = (typeof CONTENT_GENDERS)[number];
 
+/** Días/semana válidos para plantillas y perfil de cliente */
+export const CONTENT_DAYS_PER_WEEK = [2, 3, 4, 5, 6] as const;
+export type ContentDaysPerWeek = (typeof CONTENT_DAYS_PER_WEEK)[number];
+
 function normalizeCargo(value: string) {
   return value
     .normalize("NFD")

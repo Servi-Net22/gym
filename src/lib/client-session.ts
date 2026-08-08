@@ -10,6 +10,8 @@ export type ClientSession = {
   organizationSlug: string;
   /** Nivel de entrenamiento; null = sin asignar (no ve rutinas/dietas) */
   trainingLevel: "principiante" | "intermedio" | "avanzado" | null;
+  /** Días/semana de asistencia; null = sin asignar (no ve rutinas/dietas) */
+  daysPerWeek: number | null;
 };
 
 const SESSION_TTL = "30d";
@@ -23,8 +25,9 @@ function getSecret() {
 }
 
 export async function createClientSessionToken(
-  client: Omit<ClientSession, "trainingLevel"> & {
+  client: Omit<ClientSession, "trainingLevel" | "daysPerWeek"> & {
     trainingLevel?: ClientSession["trainingLevel"];
+    daysPerWeek?: ClientSession["daysPerWeek"];
   },
 ) {
   return new SignJWT({
@@ -43,7 +46,7 @@ export async function createClientSessionToken(
 
 export async function readClientSessionToken(
   token: string,
-): Promise<Omit<ClientSession, "trainingLevel"> | null> {
+): Promise<Omit<ClientSession, "trainingLevel" | "daysPerWeek"> | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (!payload.sub || payload.kind !== "client") return null;

@@ -32,6 +32,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
       active: true,
       portalPinHash: true,
       trainingLevel: true,
+      daysPerWeek: true,
       organizationId: true,
       organization: { select: { slug: true, active: true } },
     },
@@ -58,6 +59,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
     organizationId: client.organizationId,
     organizationSlug: client.organization.slug,
     trainingLevel: client.trainingLevel,
+    daysPerWeek: client.daysPerWeek,
   };
 }
 

@@ -97,7 +97,11 @@ export async function markContentReadAction(contentId: string) {
     where: {
       id: contentId,
       ...tenantWhere(session),
-      ...visibleContentWhere(session.id, session.trainingLevel),
+      ...visibleContentWhere(
+        session.id,
+        session.trainingLevel,
+        session.daysPerWeek,
+      ),
     },
     select: { id: true, organizationId: true },
   });
@@ -118,6 +122,7 @@ export async function dismissContentAction(contentId: string) {
     contentId,
     session.organizationId,
     session.trainingLevel,
+    session.daysPerWeek,
   );
   if (!result.ok) return;
 

@@ -70,6 +70,8 @@ model Client {
   portalPin        String?
   /// Nivel de entrenamiento (filtra rutinas/dietas en el PWA). null = sin asignar
   trainingLevel    ContentLevel?
+  /// Días por semana que asiste (filtra rutinas/dietas en el PWA). null = sin asignar
+  daysPerWeek      Int?
   membershipEndsAt DateTime?
   planId           String?
   plan             Plan?        @relation(fields: [planId], references: [id])

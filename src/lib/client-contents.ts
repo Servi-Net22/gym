@@ -18,12 +18,13 @@ export function isPresetContentType(type: string) {
 
 /**
  * Visibilidad en el portal del cliente.
- * Rutinas/dietas: solo si content.level === trainingLevel del cliente
- * (sin nivel en el perfil → no ve ninguna; content.level null → no visible a clientes).
+ * Rutinas/dietas: content.level === trainingLevel y content.daysPerWeek === daysPerWeek
+ * (sin nivel o sin días en el perfil → no ve ninguna; campos null en content → no visible).
  */
 export function visibleContentWhere(
   clientId: string,
   trainingLevel?: ContentLevelValue | null,
+  daysPerWeek?: number | null,
 ) {
   const levelGate = trainingLevel
     ? {
@@ -37,11 +38,24 @@ export function visibleContentWhere(
       }
     : { type: { notIn: [...PRESET_TYPES] } };
 
+  const daysGate =
+    daysPerWeek != null
+      ? {
+          OR: [
+            { type: { notIn: [...PRESET_TYPES] } },
+            {
+              type: { in: [...PRESET_TYPES] },
+              daysPerWeek,
+            },
+          ],
+        }
+      : { type: { notIn: [...PRESET_TYPES] } };
+
   return {
     published: true as const,
     OR: [{ clientId: null }, { clientId }],
     dismissals: { none: { clientId } },
-    AND: [levelGate],
+    AND: [levelGate, daysGate],
   };
 }
 
@@ -49,6 +63,7 @@ export async function countUnreadContents(
   clientId: string,
   organizationId: string,
   trainingLevel?: ContentLevelValue | null,
+  daysPerWeek?: number | null,
 ) {
   if (!organizationId) {
     throw new Error("organizationId requerido para contenidos del portal");
@@ -56,8 +71,7 @@ export async function countUnreadContents(
   return prisma.content.count({
     where: {
       organizationId,
-      ...visibleContentWhere(clientId, trainingLevel),
-      reads: { none: { clientId } },
+      ...visibleContentWhere(clientId, trainingLevel, daysPerWeek),
     },
   });
 }
@@ -82,12 +96,13 @@ export async function dismissClientContent(
   contentId: string,
   organizationId: string,
   trainingLevel?: ContentLevelValue | null,
+  daysPerWeek?: number | null,
 ) {
   const content = await prisma.content.findFirst({
     where: {
       id: contentId,
       organizationId,
-      ...visibleContentWhere(clientId, trainingLevel),
+      ...visibleContentWhere(clientId, trainingLevel, daysPerWeek),
     },
     select: {
       id: true,

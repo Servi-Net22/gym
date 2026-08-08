@@ -20,6 +20,7 @@ export default async function ClientHomePage() {
       session.id,
       session.organizationId,
       session.trainingLevel,
+      session.daysPerWeek,
     ),
   ]);
 

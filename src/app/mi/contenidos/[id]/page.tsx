@@ -40,7 +40,11 @@ export default async function ClientContentDetailPage({
     where: {
       id,
       ...tenantWhere(session),
-      ...visibleContentWhere(session.id, session.trainingLevel),
+      ...visibleContentWhere(
+        session.id,
+        session.trainingLevel,
+        session.daysPerWeek,
+      ),
     },
     include: {
       reads: {

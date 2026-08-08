@@ -11,6 +11,7 @@ import {
 } from "@/components/Ui";
 import { requireAdmin } from "@/lib/auth";
 import {
+  CONTENT_DAYS_PER_WEEK,
   CONTENT_LEVEL_LABELS,
   CONTENT_LEVELS,
 } from "@/lib/content-permissions";
@@ -59,6 +60,16 @@ export default async function NuevoClientePage() {
               options={CONTENT_LEVELS.map((v) => ({
                 value: v,
                 label: CONTENT_LEVEL_LABELS[v],
+              }))}
+            />
+            <SelectField
+              label="Días por semana"
+              name="daysPerWeek"
+              allowEmpty
+              emptyLabel="Sin asignar"
+              options={CONTENT_DAYS_PER_WEEK.map((n) => ({
+                value: String(n),
+                label: `${n} días`,
               }))}
             />
             <Field

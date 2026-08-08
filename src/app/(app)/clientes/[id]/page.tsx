@@ -107,6 +107,14 @@ export default async function ClienteDetallePage({
               }
             />
             <Item
+              label="Días por semana"
+              value={
+                client.daysPerWeek != null
+                  ? `${client.daysPerWeek} días`
+                  : "Sin asignar"
+              }
+            />
+            <Item
               label="Nacimiento"
               value={formatDate(client.birthDate)}
             />

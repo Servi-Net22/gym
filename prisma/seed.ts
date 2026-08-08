@@ -144,6 +144,7 @@ async function main() {
       portalPinHash,
       portalPin: "1234",
       trainingLevel: "principiante",
+      daysPerWeek: 3,
       emergencyContact: "Carlos Fernández 11-5555-1002",
     },
   });
