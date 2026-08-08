@@ -7,7 +7,7 @@ import {
   PageHeader,
   SubmitButton,
 } from "@/components/Ui";
-import { requireSession } from "@/lib/auth";
+import { isAdmin, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import { formatCurrency } from "@/lib/utils";
@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PlanesPage() {
   const session = await requireSession();
+  const canManage = isAdmin(session);
   const plans = await prisma.plan.findMany({
     where: tenantWhere(session),
     orderBy: { price: "asc" },
@@ -37,7 +38,7 @@ export default async function PlanesPage() {
           "Duración",
           "Clientes",
           "Estado",
-          "",
+          ...(canManage ? [""] : []),
         ]}
       >
         {plans.map((plan) => (
@@ -54,21 +55,23 @@ export default async function PlanesPage() {
             <td className="px-4 py-3">
               <StatusBadge active={plan.active} />
             </td>
-            <td className="px-4 py-3">
-              <div className="flex justify-end gap-3">
-                <Link
-                  href={`/planes/${plan.id}/editar`}
-                  className="text-sm font-semibold underline"
-                >
-                  Editar
-                </Link>
-                <form action={togglePlan.bind(null, plan.id)}>
-                  <SubmitButton variant="ghost">
-                    {plan.active ? "Desactivar" : "Activar"}
-                  </SubmitButton>
-                </form>
-              </div>
-            </td>
+            {canManage ? (
+              <td className="px-4 py-3">
+                <div className="flex justify-end gap-3">
+                  <Link
+                    href={`/planes/${plan.id}/editar`}
+                    className="text-sm font-semibold underline"
+                  >
+                    Editar
+                  </Link>
+                  <form action={togglePlan.bind(null, plan.id)}>
+                    <SubmitButton variant="ghost">
+                      {plan.active ? "Desactivar" : "Activar"}
+                    </SubmitButton>
+                  </form>
+                </div>
+              </td>
+            ) : null}
           </tr>
         ))}
       </DataTable>

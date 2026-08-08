@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireSession } from "@/lib/auth";
+import { requireAdmin, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantId, tenantWhere } from "@/lib/tenant";
 import { planSchema } from "@/lib/validations";
@@ -29,7 +29,7 @@ export async function createPlan(formData: FormData) {
 }
 
 export async function updatePlan(id: string, formData: FormData) {
-  const session = await requireSession();
+  const session = await requireAdmin();
   const parsed = planSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
@@ -52,7 +52,7 @@ export async function updatePlan(id: string, formData: FormData) {
 }
 
 export async function togglePlan(id: string) {
-  const session = await requireSession();
+  const session = await requireAdmin();
   const plan = await prisma.plan.findFirst({
     where: { id, ...tenantWhere(session) },
   });
