@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ContentVideo } from "@/components/ContentVideo";
 import { DismissContentButton } from "@/components/DismissContentButton";
 import { MarkContentRead } from "@/components/MarkContentRead";
 import { requireClientSession } from "@/lib/client-auth";
@@ -18,6 +19,18 @@ const LABELS: Record<string, string> = {
   rutina: "Rutina",
   dieta: "Dieta",
   aviso: "Aviso",
+};
+
+const LEVEL_LABELS: Record<string, string> = {
+  principiante: "Principiante",
+  intermedio: "Intermedio",
+  avanzado: "Avanzado",
+};
+
+const GENDER_LABELS: Record<string, string> = {
+  hombre: "Hombre",
+  mujer: "Mujer",
+  todos: "Todos",
 };
 
 export default async function ClientContentDetailPage({
@@ -46,16 +59,21 @@ export default async function ClientContentDetailPage({
 
   const unread = item.reads.length === 0;
   const canDismiss = !unread && isDismissibleContentType(item.type);
+  const isPreset = item.type === "rutina" || item.type === "dieta";
+  const backHref =
+    item.type === "rutina" || item.type === "dieta"
+      ? `/mi/contenidos?tipo=${item.type}`
+      : "/mi/contenidos";
 
   return (
     <div className="space-y-4">
       <MarkContentRead contentId={item.id} unread={unread} />
 
       <Link
-        href="/mi/contenidos"
+        href={backHref}
         className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--ink)]"
       >
-        ← Volver a novedades
+        ← Volver
       </Link>
 
       <article className="rounded-xl border border-[var(--line)] bg-white p-5">
@@ -75,6 +93,21 @@ export default async function ClientContentDetailPage({
               Leído
             </span>
           )}
+          {isPreset && item.level ? (
+            <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-xs font-semibold text-[var(--muted)]">
+              {LEVEL_LABELS[item.level] ?? item.level}
+            </span>
+          ) : null}
+          {isPreset ? (
+            <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-xs font-semibold text-[var(--muted)]">
+              {GENDER_LABELS[item.gender] ?? item.gender}
+            </span>
+          ) : null}
+          {isPreset && item.daysPerWeek != null ? (
+            <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-xs font-semibold text-[var(--muted)]">
+              {item.daysPerWeek} días/sem
+            </span>
+          ) : null}
         </div>
 
         <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl tracking-wide">
@@ -84,6 +117,8 @@ export default async function ClientContentDetailPage({
         <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink)]">
           {item.body}
         </p>
+
+        <ContentVideo videoUrl={item.videoUrl} videoTitle={item.videoTitle} />
 
         {canDismiss ? (
           <div className="mt-5 flex justify-end border-t border-[var(--line)] pt-4">

@@ -271,7 +271,7 @@ async function main() {
         organizationId: org.id,
         type: "aviso",
         title: "Bienvenido a la app del gym",
-        body: "Desde acá ves tu QR, el estado de tu cuenta y novedades. Más adelante también rutinas y dietas personalizadas.",
+        body: "Desde acá ves tu QR, el estado de tu cuenta y novedades. También rutinas y dietas filtradas por nivel y días.",
         clientId: null,
         createdById: admin.id,
         published: true,
@@ -279,9 +279,28 @@ async function main() {
       {
         organizationId: org.id,
         type: "rutina",
-        title: "Rutina inicial full body",
-        body: "Día A: sentadilla 3x10, press banca 3x10, remo 3x10.\nDía B: peso muerto 3x8, press militar 3x10, dominadas asistidas 3x8.\nDescanso 60–90s entre series.",
-        clientId: clientOk.id,
+        title: "Full body principiante (3 días)",
+        body: "Día A: sentadilla 3x10, press banca 3x10, remo 3x10.\nDía B: peso muerto 3x8, press militar 3x10, dominadas asistidas 3x8.\nDía C: hip thrust 3x12, face pull 3x15, plancha 3x30s.\nDescanso 60–90s entre series.",
+        clientId: null,
+        level: "principiante",
+        gender: "todos",
+        daysPerWeek: 3,
+        videoUrl: "https://www.youtube.com/watch?v=IODxDxX7oi4",
+        videoTitle: "Técnica de sentadilla",
+        createdById: admin.id,
+        published: true,
+      },
+      {
+        organizationId: org.id,
+        type: "rutina",
+        title: "Fuerza intermedia (4 días)",
+        body: "Día 1 (empuje): banca 4x6, militar 3x8, fondos 3x10.\nDía 2 (tirón): peso muerto rumano 4x6, remo 4x8, jalón 3x10.\nDía 3 (piernas): sentadilla 4x6, zancadas 3x10, gemelos 3x12.\nDía 4 (full): hip thrust 3x8, press inclinado 3x8, face pull 3x15.",
+        clientId: null,
+        level: "intermedio",
+        gender: "hombre",
+        daysPerWeek: 4,
+        videoUrl: "https://www.youtube.com/watch?v=rT7DgCr-3pg",
+        videoTitle: "Press de banca",
         createdById: admin.id,
         published: true,
       },
@@ -291,6 +310,9 @@ async function main() {
         title: "Pauta nutricional básica",
         body: "Priorizá proteína en cada comida, hidratate (2L/día) y evitá ultraprocesados los días de entrenamiento intenso.\nConsultá con nutricionista para un plan a medida.",
         clientId: null,
+        level: "principiante",
+        gender: "todos",
+        daysPerWeek: 3,
         createdById: admin.id,
         published: true,
       },
@@ -311,6 +333,7 @@ async function main() {
   }
   console.log(`  Superadmin id: ${superadmin.id}`);
   console.log("  Admin org:   admin@gymflow.local / admin123");
+  console.log("  Entrenador:  diego@gymflow.local / empleado123");
   console.log("  Empleado:    sofia@gymflow.local / empleado123");
   console.log(
     `  Cliente PWA: DNI 30111222 / PIN 1234 → /mi/${org.slug}/login`,

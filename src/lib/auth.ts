@@ -43,6 +43,7 @@ export async function getSession(): Promise<SessionUser | null> {
       employeeId: true,
       active: true,
       organizationId: true,
+      employee: { select: { role: true } },
       organization: {
         select: { id: true, name: true, slug: true, active: true },
       },
@@ -82,6 +83,7 @@ export async function getSession(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role,
     employeeId: user.employeeId,
+    employeeRole: user.employee?.role ?? null,
     organizationId: org.id,
     organizationName: org.name,
     organizationSlug: org.slug,

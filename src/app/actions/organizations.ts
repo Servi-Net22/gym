@@ -215,6 +215,7 @@ export async function enterOrganizationAsSuperAdmin(organizationId: string) {
     name: session.name,
     role: session.role,
     employeeId: session.employeeId,
+    employeeRole: session.employeeRole,
     organizationId: org.id,
     organizationName: org.name,
     organizationSlug: org.slug,

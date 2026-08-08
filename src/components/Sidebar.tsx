@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/app/actions/auth";
+import { contentsNavLabel, isTrainer } from "@/lib/content-permissions";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/session";
 
@@ -10,6 +11,7 @@ const links: {
   href: string;
   label: string;
   roles: Array<SessionUser["role"]>;
+  contents?: boolean;
 }[] = [
   { href: "/", label: "Panel", roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"] },
   {
@@ -37,6 +39,7 @@ const links: {
     href: "/contenidos",
     label: "Contenidos PWA",
     roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+    contents: true,
   },
   {
     href: "/acceso",
@@ -50,17 +53,20 @@ const links: {
   },
 ];
 
-function roleLabel(role: SessionUser["role"]) {
-  if (role === "SUPERADMIN") return "Superadmin";
-  if (role === "ADMIN") return "Administrador";
+function roleLabel(user: SessionUser) {
+  if (user.role === "SUPERADMIN") return "Superadmin";
+  if (user.role === "ADMIN") return "Administrador";
+  if (isTrainer(user)) return "Entrenador";
   return "Empleado";
 }
 
 export function Sidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
-  const visibleLinks = links.filter((link) =>
-    link.roles.includes(user.role),
-  );
+  const visibleLinks = links
+    .filter((link) => link.roles.includes(user.role))
+    .map((link) =>
+      link.contents ? { ...link, label: contentsNavLabel(user) } : link,
+    );
 
   return (
     <aside className="no-print flex w-64 shrink-0 flex-col border-r border-[var(--line)] bg-[var(--panel)] print:hidden">
@@ -101,7 +107,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
         <div>
           <p className="text-sm font-semibold text-[var(--ink)]">{user.name}</p>
           <p className="text-xs text-[var(--muted)]">
-            {roleLabel(user.role)} · {user.email}
+            {roleLabel(user)} · {user.email}
           </p>
         </div>
         <form action={logoutAction}>

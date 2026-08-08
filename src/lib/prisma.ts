@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Subí este número cuando agregues modelos nuevos, para invalidar el singleton en dev. */
-const PRISMA_SCHEMA_VERSION = 7;
+const PRISMA_SCHEMA_VERSION = 8;
 
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;

@@ -6,6 +6,10 @@ import {
   isDismissibleContentType,
   visibleContentWhere,
 } from "@/lib/client-contents";
+import {
+  CONTENT_GENDERS,
+  CONTENT_LEVELS,
+} from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/utils";
@@ -19,17 +23,95 @@ const LABELS: Record<string, string> = {
   aviso: "Aviso",
 };
 
+const LEVEL_LABELS: Record<string, string> = {
+  principiante: "Principiante",
+  intermedio: "Intermedio",
+  avanzado: "Avanzado",
+};
+
+const GENDER_LABELS: Record<string, string> = {
+  hombre: "Hombre",
+  mujer: "Mujer",
+  todos: "Todos",
+};
+
+function buildHref(params: {
+  tipo?: string;
+  nivel?: string;
+  genero?: string;
+  dias?: string;
+}) {
+  const q = new URLSearchParams();
+  if (params.tipo) q.set("tipo", params.tipo);
+  if (params.nivel) q.set("nivel", params.nivel);
+  if (params.genero) q.set("genero", params.genero);
+  if (params.dias) q.set("dias", params.dias);
+  const s = q.toString();
+  return s ? `/mi/contenidos?${s}` : "/mi/contenidos";
+}
+
+function chipClass(active: boolean) {
+  return active
+    ? "rounded-full border border-[var(--ink)] bg-[var(--ink)] px-3 py-1 font-semibold text-white"
+    : "rounded-full border border-[var(--line)] bg-white px-3 py-1 font-semibold";
+}
+
 export default async function ClientContentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string }>;
+  searchParams: Promise<{
+    tipo?: string;
+    nivel?: string;
+    genero?: string;
+    dias?: string;
+  }>;
 }) {
   const session = await requireClientSession();
-  const { tipo } = await searchParams;
+  const { tipo, nivel, genero, dias } = await searchParams;
+
   const typeFilter =
     tipo && ["info", "rutina", "dieta", "aviso"].includes(tipo)
       ? (tipo as "info" | "rutina" | "dieta" | "aviso")
       : undefined;
+
+  const isPresetView = typeFilter === "rutina" || typeFilter === "dieta";
+
+  const levelFilter =
+    isPresetView &&
+    nivel &&
+    (CONTENT_LEVELS as readonly string[]).includes(nivel)
+      ? nivel
+      : undefined;
+
+  const genderFilter =
+    isPresetView &&
+    genero &&
+    (CONTENT_GENDERS as readonly string[]).includes(genero)
+      ? genero
+      : undefined;
+
+  const daysNum = dias ? Number(dias) : NaN;
+  const daysFilter =
+    isPresetView && Number.isInteger(daysNum) && daysNum >= 2 && daysNum <= 6
+      ? daysNum
+      : undefined;
+
+  const presetFilters: Array<Record<string, unknown>> = [];
+  if (levelFilter) {
+    presetFilters.push({
+      OR: [{ level: levelFilter }, { level: null }],
+    });
+  }
+  if (genderFilter && genderFilter !== "todos") {
+    presetFilters.push({
+      OR: [{ gender: genderFilter }, { gender: "todos" }],
+    });
+  }
+  if (daysFilter != null) {
+    presetFilters.push({
+      OR: [{ daysPerWeek: daysFilter }, { daysPerWeek: null }],
+    });
+  }
 
   const [items, unreadTotal] = await Promise.all([
     prisma.content.findMany({
@@ -37,6 +119,7 @@ export default async function ClientContentsPage({
         ...tenantWhere(session),
         ...visibleContentWhere(session.id),
         ...(typeFilter ? { type: typeFilter } : {}),
+        ...(presetFilters.length > 0 ? { AND: presetFilters } : {}),
       },
       orderBy: { publishedAt: "desc" },
       take: 50,
@@ -51,6 +134,13 @@ export default async function ClientContentsPage({
     countUnreadContents(session.id, session.organizationId),
   ]);
 
+  const base = {
+    tipo: typeFilter,
+    nivel: levelFilter,
+    genero: genderFilter,
+    dias: daysFilter != null ? String(daysFilter) : undefined,
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -58,7 +148,9 @@ export default async function ClientContentsPage({
           {typeFilter ? LABELS[typeFilter] : "Novedades"}
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          Info, rutinas y dietas que te envía el gimnasio.
+          {isPresetView
+            ? "Plantillas del gym: filtrá por nivel, género y días."
+            : "Info, rutinas y dietas que te envía el gimnasio."}
           {unreadTotal > 0
             ? ` Tenés ${unreadTotal} sin leer.`
             : " Estás al día."}
@@ -67,32 +159,120 @@ export default async function ClientContentsPage({
 
       <div className="flex flex-wrap gap-2 text-xs">
         {[
-          { href: "/mi/contenidos", label: "Todo" },
-          { href: "/mi/contenidos?tipo=aviso", label: "Avisos" },
-          { href: "/mi/contenidos?tipo=rutina", label: "Rutinas" },
-          { href: "/mi/contenidos?tipo=dieta", label: "Dietas" },
-          { href: "/mi/contenidos?tipo=info", label: "Info" },
+          { href: "/mi/contenidos", label: "Todo", active: !typeFilter },
+          {
+            href: "/mi/contenidos?tipo=aviso",
+            label: "Avisos",
+            active: typeFilter === "aviso",
+          },
+          {
+            href: "/mi/contenidos?tipo=rutina",
+            label: "Rutinas",
+            active: typeFilter === "rutina",
+          },
+          {
+            href: "/mi/contenidos?tipo=dieta",
+            label: "Dietas",
+            active: typeFilter === "dieta",
+          },
+          {
+            href: "/mi/contenidos?tipo=info",
+            label: "Info",
+            active: typeFilter === "info",
+          },
         ].map((f) => (
-          <Link
-            key={f.href}
-            href={f.href}
-            className="rounded-full border border-[var(--line)] bg-white px-3 py-1 font-semibold"
-          >
+          <Link key={f.href} href={f.href} className={chipClass(f.active)}>
             {f.label}
           </Link>
         ))}
       </div>
 
+      {isPresetView ? (
+        <div className="space-y-3 rounded-xl border border-[var(--line)] bg-white/80 p-3">
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Nivel
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Link
+                href={buildHref({ ...base, nivel: undefined })}
+                className={chipClass(!levelFilter)}
+              >
+                Todos
+              </Link>
+              {CONTENT_LEVELS.map((v) => (
+                <Link
+                  key={v}
+                  href={buildHref({ ...base, nivel: v })}
+                  className={chipClass(levelFilter === v)}
+                >
+                  {LEVEL_LABELS[v]}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Género
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Link
+                href={buildHref({ ...base, genero: undefined })}
+                className={chipClass(!genderFilter)}
+              >
+                Todos
+              </Link>
+              {CONTENT_GENDERS.filter((g) => g !== "todos").map((v) => (
+                <Link
+                  key={v}
+                  href={buildHref({ ...base, genero: v })}
+                  className={chipClass(genderFilter === v)}
+                >
+                  {GENDER_LABELS[v]}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Días / semana
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Link
+                href={buildHref({ ...base, dias: undefined })}
+                className={chipClass(daysFilter == null)}
+              >
+                Todos
+              </Link>
+              {[2, 3, 4, 5, 6].map((n) => (
+                <Link
+                  key={n}
+                  href={buildHref({ ...base, dias: String(n) })}
+                  className={chipClass(daysFilter === n)}
+                >
+                  {n}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {items.length === 0 ? (
         <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
-          Todavía no hay contenidos{typeFilter ? ` de ${LABELS[typeFilter]}` : ""}.
-          Cuando el gimnasio publique, van a aparecer acá.
+          Todavía no hay contenidos
+          {typeFilter ? ` de ${LABELS[typeFilter]}` : ""}
+          {isPresetView && (levelFilter || genderFilter || daysFilter != null)
+            ? " con esos filtros"
+            : ""}
+          . Cuando el gimnasio publique, van a aparecer acá.
         </p>
       ) : (
         <ul className="space-y-3">
           {items.map((item) => {
             const unread = item.reads.length === 0;
             const canDismiss = !unread && isDismissibleContentType(item.type);
+            const isPreset = item.type === "rutina" || item.type === "dieta";
             return (
               <li
                 key={item.id}
@@ -107,7 +287,7 @@ export default async function ClientContentsPage({
                   className="block p-4 transition hover:opacity-90"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded bg-[var(--accent-soft)] px-2 py-0.5 text-xs font-semibold">
                         {LABELS[item.type] ?? item.type}
                       </span>
@@ -116,8 +296,18 @@ export default async function ClientContentsPage({
                           Nuevo
                         </span>
                       ) : null}
+                      {isPreset && item.level ? (
+                        <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-[10px] font-semibold text-[var(--muted)]">
+                          {LEVEL_LABELS[item.level] ?? item.level}
+                        </span>
+                      ) : null}
+                      {isPreset && item.daysPerWeek != null ? (
+                        <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-[10px] font-semibold text-[var(--muted)]">
+                          {item.daysPerWeek} días
+                        </span>
+                      ) : null}
                     </div>
-                    <span className="text-xs text-[var(--muted)]">
+                    <span className="shrink-0 text-xs text-[var(--muted)]">
                       {formatDateTime(item.publishedAt)}
                     </span>
                   </div>

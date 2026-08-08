@@ -90,27 +90,47 @@ enum ContentType {
   aviso
 }
 
+enum ContentLevel {
+  principiante
+  intermedio
+  avanzado
+}
+
+enum ContentGender {
+  hombre
+  mujer
+  todos
+}
+
 /// Contenidos para el PWA del cliente (info, rutinas, dietas, avisos)
 model Content {
-  id             String       @id @default(cuid())
+  id             String         @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  type           ContentType  @default(info)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           ContentType    @default(info)
   title          String
   body           String
   /// null = visible para todos los clientes activos
   clientId       String?
-  client         Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  published      Boolean      @default(true)
+  client         Client?        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /// Filtros de plantilla (rutina/dieta); null en info/aviso
+  level          ContentLevel?
+  gender         ContentGender  @default(todos)
+  daysPerWeek    Int?
+  /// URL HTTPS (YouTube/Vimeo/directo); sin upload binario
+  videoUrl       String?
+  videoTitle     String?
+  published      Boolean        @default(true)
   createdById    String?
-  createdBy      User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  publishedAt    DateTime     @default(now())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdBy      User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  publishedAt    DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   reads          ContentRead[]
   dismissals     ContentDismiss[]
 
   @@index([organizationId])
+  @@index([organizationId, type])
 }
 
 /// Lectura de un contenido por un cliente (para avisos de “nuevos”)

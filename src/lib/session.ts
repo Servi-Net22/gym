@@ -10,6 +10,8 @@ export type SessionUser = {
   name: string;
   role: StaffRole;
   employeeId: string | null;
+  /** Cargo libre del Employee vinculado (ej. "Entrenador"); null si no hay vínculo. */
+  employeeRole: string | null;
   organizationId: string;
   organizationName: string;
   organizationSlug: string;
@@ -38,6 +40,7 @@ export async function createSessionToken(user: SessionUser) {
     name: user.name,
     role: user.role,
     employeeId: user.employeeId,
+    employeeRole: user.employeeRole,
     organizationId: user.organizationId,
     organizationName: user.organizationName,
     organizationSlug: user.organizationSlug,
@@ -63,6 +66,8 @@ export async function readSessionToken(
       role: parseStaffRole(payload.role),
       employeeId:
         typeof payload.employeeId === "string" ? payload.employeeId : null,
+      employeeRole:
+        typeof payload.employeeRole === "string" ? payload.employeeRole : null,
       organizationId: payload.organizationId,
       organizationName: String(payload.organizationName ?? ""),
       organizationSlug: String(payload.organizationSlug ?? ""),

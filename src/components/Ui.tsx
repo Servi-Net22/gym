@@ -85,6 +85,7 @@ export function Field({
   placeholder,
   step,
   min,
+  max,
   readOnly,
 }: {
   label: string;
@@ -95,6 +96,7 @@ export function Field({
   placeholder?: string;
   step?: string;
   min?: string;
+  max?: string;
   readOnly?: boolean;
 }) {
   return (
@@ -107,6 +109,7 @@ export function Field({
         placeholder={placeholder}
         step={step}
         min={min}
+        max={max}
         readOnly={readOnly}
         defaultValue={defaultValue ?? undefined}
         className="w-full rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none ring-[var(--accent)] focus:ring-2 read-only:bg-[var(--panel)]"
