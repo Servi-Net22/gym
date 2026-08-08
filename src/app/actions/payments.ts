@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { requireAdmin, requireSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import {
   emailMercadoPagoCheckout,
   emailPaymentConfirmed,
@@ -57,7 +57,7 @@ async function notifyConfirmedPayment(paymentId: string, registeredByName?: stri
 
 /** Registrar un pago ya recibido (efectivo / transferencia / MP cobrado en caja). */
 export async function registerManualPayment(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireAdmin();
   const parsed = parsePaymentForm(formData);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
@@ -99,7 +99,7 @@ export async function registerManualPayment(formData: FormData) {
  * - Efectivo: se registra confirmado (cobro en mostrador)
  */
 export async function startAutomaticCharge(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireAdmin();
   const parsed = parsePaymentForm(formData);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
@@ -217,7 +217,7 @@ export async function startAutomaticCharge(formData: FormData) {
 }
 
 export async function confirmPendingPayment(paymentId: string) {
-  const session = await requireSession();
+  const session = await requireAdmin();
   const owned = await prisma.payment.findFirst({
     where: { id: paymentId, ...tenantWhere(session) },
     select: { id: true },
@@ -232,7 +232,7 @@ export async function confirmPendingPayment(paymentId: string) {
 }
 
 export async function cancelPendingPayment(paymentId: string) {
-  const session = await requireSession();
+  const session = await requireAdmin();
   const owned = await prisma.payment.findFirst({
     where: { id: paymentId, ...tenantWhere(session) },
     select: { id: true },

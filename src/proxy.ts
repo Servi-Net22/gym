@@ -74,6 +74,19 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/?error=sin-permiso", request.url));
   }
 
+  // Pagos y mutación de clientes: solo ADMIN / SUPERADMIN.
+  if (staffSession.role === "EMPLOYEE") {
+    const employeeBlocked =
+      pathname === "/pagos" ||
+      pathname.startsWith("/pagos/") ||
+      pathname === "/clientes/nuevo" ||
+      pathname.startsWith("/clientes/nuevo/") ||
+      /^\/clientes\/[^/]+\/editar\/?$/.test(pathname);
+    if (employeeBlocked) {
+      return NextResponse.redirect(new URL("/?error=sin-permiso", request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 

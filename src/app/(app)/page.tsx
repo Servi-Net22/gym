@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, Panel } from "@/components/Ui";
 import { AccessBadge, StatusBadge } from "@/components/StatusBadge";
-import { requireSession } from "@/lib/auth";
+import { isAdmin, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import {
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const session = await requireSession();
+  const canManagePayments = isAdmin(session);
   const scope = tenantWhere(session);
 
   const [clients, employees, plans, payments, recentAccess, overdue] =
@@ -22,11 +23,13 @@ export default async function HomePage() {
       prisma.client.count({ where: { ...scope, active: true } }),
       prisma.employee.count({ where: { ...scope, active: true } }),
       prisma.plan.count({ where: { ...scope, active: true } }),
-      prisma.payment.aggregate({
-        where: scope,
-        _sum: { amount: true },
-        _count: true,
-      }),
+      canManagePayments
+        ? prisma.payment.aggregate({
+            where: scope,
+            _sum: { amount: true },
+            _count: true,
+          })
+        : Promise.resolve({ _sum: { amount: 0 }, _count: 0 }),
       prisma.accessLog.findMany({
         where: scope,
         take: 8,
@@ -67,11 +70,15 @@ export default async function HomePage() {
         <Stat label="Clientes activos" value={String(clients)} />
         <Stat label="Cuentas al día" value={String(currentClients)} />
         <Stat label="Empleados" value={String(employees)} />
-        <Stat
-          label="Ingresos registrados"
-          value={formatCurrency(payments._sum.amount ?? 0)}
-          hint={`${payments._count} pagos · ${plans} planes`}
-        />
+        {canManagePayments ? (
+          <Stat
+            label="Ingresos registrados"
+            value={formatCurrency(payments._sum.amount ?? 0)}
+            hint={`${payments._count} pagos · ${plans} planes`}
+          />
+        ) : (
+          <Stat label="Planes activos" value={String(plans)} />
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -120,9 +127,18 @@ export default async function HomePage() {
             <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
               Cuentas vencidas
             </h2>
-            <Link href="/pagos/nuevo" className="text-sm font-medium underline">
-              Registrar pago
-            </Link>
+            {canManagePayments ? (
+              <Link
+                href="/pagos/nuevo"
+                className="text-sm font-medium underline"
+              >
+                Registrar pago
+              </Link>
+            ) : (
+              <Link href="/clientes" className="text-sm font-medium underline">
+                Ver clientes
+              </Link>
+            )}
           </div>
           <ul className="space-y-3">
             {overdue.length === 0 ? (

@@ -1,6 +1,6 @@
 import { PaymentForm } from "@/components/PaymentForm";
 import { PageHeader, Panel } from "@/components/Ui";
-import { requireSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fullName } from "@/lib/utils";
 
@@ -11,7 +11,7 @@ export default async function NuevoPagoPage({
 }: {
   searchParams: Promise<{ clientId?: string }>;
 }) {
-  const session = await requireSession();
+  const session = await requireAdmin();
   const { clientId } = await searchParams;
   const clients = await prisma.client.findMany({
     where: { organizationId: session.organizationId },

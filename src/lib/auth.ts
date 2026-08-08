@@ -119,8 +119,13 @@ export async function requireSuperAdmin(): Promise<SessionUser> {
   return session;
 }
 
-export function canViewSalaries(user: SessionUser | null | undefined) {
+/** ADMIN o SUPERADMIN del tenant (no EMPLOYEE). */
+export function isAdmin(user: SessionUser | null | undefined) {
   return user?.role === "ADMIN" || user?.role === "SUPERADMIN";
+}
+
+export function canViewSalaries(user: SessionUser | null | undefined) {
+  return isAdmin(user);
 }
 
 export function isSuperAdmin(user: SessionUser | null | undefined) {

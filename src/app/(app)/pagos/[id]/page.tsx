@@ -11,7 +11,7 @@ import {
   Panel,
   SubmitButton,
 } from "@/components/Ui";
-import { getSession } from "@/lib/auth";
+import { isAdmin, requireAdmin } from "@/lib/auth";
 import {
   paymentMethodLabel,
   paymentSourceLabel,
@@ -36,8 +36,7 @@ export default async function PagoDetallePage({
 }) {
   const { id } = await params;
   const { mp } = await searchParams;
-  const session = await getSession();
-  if (!session) notFound();
+  const session = await requireAdmin();
   const payment = await prisma.payment.findFirst({
     where: { id, organizationId: session.organizationId },
     include: {
@@ -50,7 +49,7 @@ export default async function PagoDetallePage({
 
   const pending = payment.status === "pending";
   const canVoid =
-    session?.role === "ADMIN" &&
+    isAdmin(session) &&
     (payment.status === "confirmed" || payment.status === "pending");
 
   return (

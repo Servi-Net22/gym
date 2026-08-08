@@ -14,7 +14,7 @@ import {
   Panel,
   SubmitButton,
 } from "@/components/Ui";
-import { requireSession } from "@/lib/auth";
+import { isAdmin, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   formatCurrency,
@@ -33,13 +33,16 @@ export default async function ClienteDetallePage({
   searchParams: Promise<{ pin?: string }>;
 }) {
   const session = await requireSession();
+  const canManage = isAdmin(session);
   const { id } = await params;
   const { pin } = await searchParams;
   const client = await prisma.client.findFirst({
     where: { id, organizationId: session.organizationId },
     include: {
       plan: true,
-      payments: { orderBy: { paidAt: "desc" }, take: 10 },
+      payments: canManage
+        ? { orderBy: { paidAt: "desc" }, take: 10 }
+        : false,
       accessLogs: { orderBy: { scannedAt: "desc" }, take: 10 },
     },
   });
@@ -52,18 +55,20 @@ export default async function ClienteDetallePage({
         title={fullName(client.firstName, client.lastName)}
         description={`DNI ${client.documentId} · ${client.plan?.name ?? "Sin plan"}`}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href={`/clientes/${client.id}/editar`} variant="ghost">
-              Editar datos
-            </ButtonLink>
-            <ButtonLink href={`/pagos/nuevo?clientId=${client.id}`}>
-              Cobrar / registrar pago
-            </ButtonLink>
-          </div>
+          canManage ? (
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink href={`/clientes/${client.id}/editar`} variant="ghost">
+                Editar datos
+              </ButtonLink>
+              <ButtonLink href={`/pagos/nuevo?clientId=${client.id}`}>
+                Cobrar / registrar pago
+              </ButtonLink>
+            </div>
+          ) : undefined
         }
       />
 
-      {pin ? (
+      {canManage && pin ? (
         <div className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
           PIN del portal (mostralo una vez al cliente):{" "}
           <strong className="font-mono text-lg">{pin}</strong> · App:{" "}
@@ -102,50 +107,58 @@ export default async function ClienteDetallePage({
               value={client.emergencyContact}
             />
             <Item label="Notas" value={client.notes} />
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-[var(--muted)]">
-                PIN portal
-              </dt>
-              <dd className="text-sm">
-                {client.portalPin ? (
-                  <>
-                    <span className="font-mono text-lg font-semibold tracking-widest">
-                      {client.portalPin}
+            {canManage ? (
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                  PIN portal
+                </dt>
+                <dd className="text-sm">
+                  {client.portalPin ? (
+                    <>
+                      <span className="font-mono text-lg font-semibold tracking-widest">
+                        {client.portalPin}
+                      </span>
+                      <span className="ml-2 text-[var(--muted)]">
+                        (DNI + PIN)
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[var(--muted)]">
+                      Sin PIN — usá «Nuevo PIN portal»
                     </span>
-                    <span className="ml-2 text-[var(--muted)]">
-                      (DNI + PIN)
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-[var(--muted)]">
-                    Sin PIN — usá «Nuevo PIN portal»
-                  </span>
-                )}
-              </dd>
-            </div>
+                  )}
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <form action={toggleClient.bind(null, client.id)}>
-              <SubmitButton variant="ghost">
-                {client.active ? "Desactivar" : "Activar"}
-              </SubmitButton>
-            </form>
-            <form action={regenerateClientQr.bind(null, client.id)}>
-              <SubmitButton variant="ghost">Regenerar QR</SubmitButton>
-            </form>
-            <form action={resetClientPortalPin.bind(null, client.id)}>
-              <SubmitButton variant="ghost">Nuevo PIN portal</SubmitButton>
-            </form>
+            {canManage ? (
+              <>
+                <form action={toggleClient.bind(null, client.id)}>
+                  <SubmitButton variant="ghost">
+                    {client.active ? "Desactivar" : "Activar"}
+                  </SubmitButton>
+                </form>
+                <form action={regenerateClientQr.bind(null, client.id)}>
+                  <SubmitButton variant="ghost">Regenerar QR</SubmitButton>
+                </form>
+                <form action={resetClientPortalPin.bind(null, client.id)}>
+                  <SubmitButton variant="ghost">Nuevo PIN portal</SubmitButton>
+                </form>
+              </>
+            ) : null}
             <Link href="/acceso" className="self-center text-sm underline">
               Probar en barrera
             </Link>
-            <Link
-              href={`/mi/${session.organizationSlug}/login`}
-              className="self-center text-sm underline"
-            >
-              Ver app cliente
-            </Link>
+            {canManage ? (
+              <Link
+                href={`/mi/${session.organizationSlug}/login`}
+                className="self-center text-sm underline"
+              >
+                Ver app cliente
+              </Link>
+            ) : null}
           </div>
         </Panel>
 
@@ -155,29 +168,31 @@ export default async function ClienteDetallePage({
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div>
-          <h2 className="mb-3 font-[family-name:var(--font-display)] text-2xl tracking-wide">
-            Pagos
-          </h2>
-          <DataTable headers={["Fecha", "Monto", "Método", "Estado", ""]}>
-            {client.payments.map((p) => (
-              <tr key={p.id}>
-                <td className="px-4 py-3">
-                  {formatDateTime(p.paidAt ?? p.createdAt)}
-                </td>
-                <td className="px-4 py-3">{formatCurrency(p.amount)}</td>
-                <td className="px-4 py-3">{p.method}</td>
-                <td className="px-4 py-3">{p.status}</td>
-                <td className="px-4 py-3 text-right">
-                  <Link href={`/pagos/${p.id}`} className="text-sm underline">
-                    Ver
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </DataTable>
-        </div>
+      <div className={`grid gap-6 ${canManage ? "lg:grid-cols-2" : ""}`}>
+        {canManage ? (
+          <div>
+            <h2 className="mb-3 font-[family-name:var(--font-display)] text-2xl tracking-wide">
+              Pagos
+            </h2>
+            <DataTable headers={["Fecha", "Monto", "Método", "Estado", ""]}>
+              {client.payments.map((p) => (
+                <tr key={p.id}>
+                  <td className="px-4 py-3">
+                    {formatDateTime(p.paidAt ?? p.createdAt)}
+                  </td>
+                  <td className="px-4 py-3">{formatCurrency(p.amount)}</td>
+                  <td className="px-4 py-3">{p.method}</td>
+                  <td className="px-4 py-3">{p.status}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Link href={`/pagos/${p.id}`} className="text-sm underline">
+                      Ver
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </div>
+        ) : null}
         <div>
           <h2 className="mb-3 font-[family-name:var(--font-display)] text-2xl tracking-wide">
             Accesos

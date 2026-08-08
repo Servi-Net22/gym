@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, ButtonLink, DataTable } from "@/components/Ui";
 import { StatusBadge } from "@/components/StatusBadge";
-import { requireSession } from "@/lib/auth";
+import { isAdmin, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import { formatDate, fullName } from "@/lib/utils";
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
   const session = await requireSession();
+  const canManage = isAdmin(session);
   const clients = await prisma.client.findMany({
     where: tenantWhere(session),
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -20,8 +21,16 @@ export default async function ClientesPage() {
     <div>
       <PageHeader
         title="Clientes"
-        description="Alta, datos personales, plan y estado de cuenta."
-        actions={<ButtonLink href="/clientes/nuevo">Nuevo cliente</ButtonLink>}
+        description={
+          canManage
+            ? "Alta, datos personales, plan y estado de cuenta."
+            : "Consulta de socios, membresía y credencial QR."
+        }
+        actions={
+          canManage ? (
+            <ButtonLink href="/clientes/nuevo">Nuevo cliente</ButtonLink>
+          ) : undefined
+        }
       />
 
       <DataTable

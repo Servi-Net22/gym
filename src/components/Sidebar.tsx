@@ -33,7 +33,7 @@ const links: {
   {
     href: "/pagos",
     label: "Pagos",
-    roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+    roles: ["ADMIN", "SUPERADMIN"],
   },
   {
     href: "/contenidos",
