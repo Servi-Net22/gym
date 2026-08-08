@@ -25,6 +25,7 @@ export async function createClient(formData: FormData) {
     address: formData.get("address") || undefined,
     emergencyContact: formData.get("emergencyContact") || undefined,
     notes: formData.get("notes") || undefined,
+    trainingLevel: formData.get("trainingLevel") || undefined,
     planId: formData.get("planId") || undefined,
     active: formData.get("active") === "on",
   });
@@ -95,6 +96,7 @@ export async function updateClient(id: string, formData: FormData) {
     address: formData.get("address") || undefined,
     emergencyContact: formData.get("emergencyContact") || undefined,
     notes: formData.get("notes") || undefined,
+    trainingLevel: formData.get("trainingLevel") || undefined,
     planId: formData.get("planId") || undefined,
     active: formData.get("active") === "on",
   });

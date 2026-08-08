@@ -8,7 +8,7 @@ import {
 } from "@/lib/client-contents";
 import {
   CONTENT_GENDERS,
-  CONTENT_LEVELS,
+  CONTENT_LEVEL_LABELS,
 } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
@@ -23,12 +23,6 @@ const LABELS: Record<string, string> = {
   aviso: "Aviso",
 };
 
-const LEVEL_LABELS: Record<string, string> = {
-  principiante: "Principiante",
-  intermedio: "Intermedio",
-  avanzado: "Avanzado",
-};
-
 const GENDER_LABELS: Record<string, string> = {
   hombre: "Hombre",
   mujer: "Mujer",
@@ -37,13 +31,11 @@ const GENDER_LABELS: Record<string, string> = {
 
 function buildHref(params: {
   tipo?: string;
-  nivel?: string;
   genero?: string;
   dias?: string;
 }) {
   const q = new URLSearchParams();
   if (params.tipo) q.set("tipo", params.tipo);
-  if (params.nivel) q.set("nivel", params.nivel);
   if (params.genero) q.set("genero", params.genero);
   if (params.dias) q.set("dias", params.dias);
   const s = q.toString();
@@ -61,13 +53,12 @@ export default async function ClientContentsPage({
 }: {
   searchParams: Promise<{
     tipo?: string;
-    nivel?: string;
     genero?: string;
     dias?: string;
   }>;
 }) {
   const session = await requireClientSession();
-  const { tipo, nivel, genero, dias } = await searchParams;
+  const { tipo, genero, dias } = await searchParams;
 
   const typeFilter =
     tipo && ["info", "rutina", "dieta", "aviso"].includes(tipo)
@@ -75,13 +66,8 @@ export default async function ClientContentsPage({
       : undefined;
 
   const isPresetView = typeFilter === "rutina" || typeFilter === "dieta";
-
-  const levelFilter =
-    isPresetView &&
-    nivel &&
-    (CONTENT_LEVELS as readonly string[]).includes(nivel)
-      ? nivel
-      : undefined;
+  const needsLevel = isPresetView;
+  const missingLevel = needsLevel && !session.trainingLevel;
 
   const genderFilter =
     isPresetView &&
@@ -97,11 +83,6 @@ export default async function ClientContentsPage({
       : undefined;
 
   const presetFilters: Array<Record<string, unknown>> = [];
-  if (levelFilter) {
-    presetFilters.push({
-      OR: [{ level: levelFilter }, { level: null }],
-    });
-  }
   if (genderFilter && genderFilter !== "todos") {
     presetFilters.push({
       OR: [{ gender: genderFilter }, { gender: "todos" }],
@@ -113,30 +94,39 @@ export default async function ClientContentsPage({
     });
   }
 
-  const [items, unreadTotal] = await Promise.all([
-    prisma.content.findMany({
-      where: {
-        ...tenantWhere(session),
-        ...visibleContentWhere(session.id),
-        ...(typeFilter ? { type: typeFilter } : {}),
-        ...(presetFilters.length > 0 ? { AND: presetFilters } : {}),
-      },
-      orderBy: { publishedAt: "desc" },
-      take: 50,
-      include: {
-        reads: {
-          where: { clientId: session.id },
-          select: { id: true },
-          take: 1,
-        },
-      },
-    }),
-    countUnreadContents(session.id, session.organizationId),
-  ]);
+  const [items, unreadTotal] = missingLevel
+    ? [[], await countUnreadContents(
+        session.id,
+        session.organizationId,
+        session.trainingLevel,
+      )]
+    : await Promise.all([
+        prisma.content.findMany({
+          where: {
+            ...tenantWhere(session),
+            ...visibleContentWhere(session.id, session.trainingLevel),
+            ...(typeFilter ? { type: typeFilter } : {}),
+            ...(presetFilters.length > 0 ? { AND: presetFilters } : {}),
+          },
+          orderBy: { publishedAt: "desc" },
+          take: 50,
+          include: {
+            reads: {
+              where: { clientId: session.id },
+              select: { id: true },
+              take: 1,
+            },
+          },
+        }),
+        countUnreadContents(
+          session.id,
+          session.organizationId,
+          session.trainingLevel,
+        ),
+      ]);
 
   const base = {
     tipo: typeFilter,
-    nivel: levelFilter,
     genero: genderFilter,
     dias: daysFilter != null ? String(daysFilter) : undefined,
   };
@@ -149,7 +139,9 @@ export default async function ClientContentsPage({
         </h1>
         <p className="text-sm text-[var(--muted)]">
           {isPresetView
-            ? "Plantillas del gym: filtrá por nivel, género y días."
+            ? session.trainingLevel
+              ? `Tu nivel: ${CONTENT_LEVEL_LABELS[session.trainingLevel]}. Filtrá por género y días.`
+              : "Las rutinas y dietas se muestran según tu nivel de entrenamiento."
             : "Info, rutinas y dietas que te envía el gimnasio."}
           {unreadTotal > 0
             ? ` Tenés ${unreadTotal} sin leer.`
@@ -187,30 +179,8 @@ export default async function ClientContentsPage({
         ))}
       </div>
 
-      {isPresetView ? (
+      {isPresetView && session.trainingLevel ? (
         <div className="space-y-3 rounded-xl border border-[var(--line)] bg-white/80 p-3">
-          <div>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Nivel
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Link
-                href={buildHref({ ...base, nivel: undefined })}
-                className={chipClass(!levelFilter)}
-              >
-                Todos
-              </Link>
-              {CONTENT_LEVELS.map((v) => (
-                <Link
-                  key={v}
-                  href={buildHref({ ...base, nivel: v })}
-                  className={chipClass(levelFilter === v)}
-                >
-                  {LEVEL_LABELS[v]}
-                </Link>
-              ))}
-            </div>
-          </div>
           <div>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
               Género
@@ -258,11 +228,15 @@ export default async function ClientContentsPage({
         </div>
       ) : null}
 
-      {items.length === 0 ? (
+      {missingLevel ? (
+        <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
+          Pedí que te asignen un nivel en recepción
+        </p>
+      ) : items.length === 0 ? (
         <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
           Todavía no hay contenidos
           {typeFilter ? ` de ${LABELS[typeFilter]}` : ""}
-          {isPresetView && (levelFilter || genderFilter || daysFilter != null)
+          {isPresetView && (genderFilter || daysFilter != null)
             ? " con esos filtros"
             : ""}
           . Cuando el gimnasio publique, van a aparecer acá.
@@ -298,7 +272,7 @@ export default async function ClientContentsPage({
                       ) : null}
                       {isPreset && item.level ? (
                         <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-[10px] font-semibold text-[var(--muted)]">
-                          {LEVEL_LABELS[item.level] ?? item.level}
+                          {CONTENT_LEVEL_LABELS[item.level] ?? item.level}
                         </span>
                       ) : null}
                       {isPreset && item.daysPerWeek != null ? (

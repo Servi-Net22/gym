@@ -143,6 +143,7 @@ async function main() {
       qrToken: token(),
       portalPinHash,
       portalPin: "1234",
+      trainingLevel: "principiante",
       emergencyContact: "Carlos Fernández 11-5555-1002",
     },
   });
@@ -271,7 +272,7 @@ async function main() {
         organizationId: org.id,
         type: "aviso",
         title: "Bienvenido a la app del gym",
-        body: "Desde acá ves tu QR, el estado de tu cuenta y novedades. También rutinas y dietas filtradas por nivel y días.",
+        body: "Desde acá ves tu QR, el estado de tu cuenta y novedades. También rutinas y dietas según tu nivel de entrenamiento.",
         clientId: null,
         createdById: admin.id,
         published: true,

@@ -131,7 +131,7 @@ export function ContentForm({
       ) : (
         <p className="text-xs text-[var(--muted)]">
           Las rutinas y dietas se comparten con todos los clientes del gym;
-          ellos filtran por nivel, género y días.
+          cada uno ve solo las de su nivel y puede filtrar por género y días.
         </p>
       )}
 

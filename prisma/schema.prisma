@@ -68,6 +68,8 @@ model Client {
   portalPinHash    String?
   /// Último PIN emitido (solo visible en ficha admin; el login usa el hash)
   portalPin        String?
+  /// Nivel de entrenamiento (filtra rutinas/dietas en el PWA). null = sin asignar
+  trainingLevel    ContentLevel?
   membershipEndsAt DateTime?
   planId           String?
   plan             Plan?        @relation(fields: [planId], references: [id])

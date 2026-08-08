@@ -29,7 +29,11 @@ export default async function ClientPortalLayout({
 }) {
   const session = await getClientSession();
   const unread = session
-    ? await countUnreadContents(session.id, session.organizationId)
+    ? await countUnreadContents(
+        session.id,
+        session.organizationId,
+        session.trainingLevel,
+      )
     : 0;
 
   return (

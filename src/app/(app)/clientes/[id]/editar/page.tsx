@@ -11,6 +11,10 @@ import {
   TextArea,
 } from "@/components/Ui";
 import { requireAdmin } from "@/lib/auth";
+import {
+  CONTENT_LEVEL_LABELS,
+  CONTENT_LEVELS,
+} from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import { fullName } from "@/lib/utils";
 
@@ -101,6 +105,17 @@ export default async function EditarClientePage({
               options={plans.map((p) => ({
                 value: p.id,
                 label: `${p.name} · ${p.durationDays} días`,
+              }))}
+            />
+            <SelectField
+              label="Nivel"
+              name="trainingLevel"
+              allowEmpty
+              emptyLabel="Sin asignar"
+              defaultValue={client.trainingLevel}
+              options={CONTENT_LEVELS.map((v) => ({
+                value: v,
+                label: CONTENT_LEVEL_LABELS[v],
               }))}
             />
           </FormGrid>

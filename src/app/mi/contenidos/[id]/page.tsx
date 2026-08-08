@@ -8,6 +8,7 @@ import {
   isDismissibleContentType,
   visibleContentWhere,
 } from "@/lib/client-contents";
+import { CONTENT_LEVEL_LABELS } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/utils";
@@ -19,12 +20,6 @@ const LABELS: Record<string, string> = {
   rutina: "Rutina",
   dieta: "Dieta",
   aviso: "Aviso",
-};
-
-const LEVEL_LABELS: Record<string, string> = {
-  principiante: "Principiante",
-  intermedio: "Intermedio",
-  avanzado: "Avanzado",
 };
 
 const GENDER_LABELS: Record<string, string> = {
@@ -45,7 +40,7 @@ export default async function ClientContentDetailPage({
     where: {
       id,
       ...tenantWhere(session),
-      ...visibleContentWhere(session.id),
+      ...visibleContentWhere(session.id, session.trainingLevel),
     },
     include: {
       reads: {
@@ -95,7 +90,7 @@ export default async function ClientContentDetailPage({
           )}
           {isPreset && item.level ? (
             <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-xs font-semibold text-[var(--muted)]">
-              {LEVEL_LABELS[item.level] ?? item.level}
+              {CONTENT_LEVEL_LABELS[item.level] ?? item.level}
             </span>
           ) : null}
           {isPreset ? (

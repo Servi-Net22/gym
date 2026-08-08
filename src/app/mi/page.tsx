@@ -16,7 +16,11 @@ export default async function ClientHomePage() {
       where: { id: session.id, ...tenantWhere(session) },
       include: { plan: true },
     }),
-    countUnreadContents(session.id, session.organizationId),
+    countUnreadContents(
+      session.id,
+      session.organizationId,
+      session.trainingLevel,
+    ),
   ]);
 
   const alDia = isMembershipCurrent(client.membershipEndsAt);

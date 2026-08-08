@@ -10,6 +10,12 @@ export const CONTENT_LEVELS = [
 ] as const;
 export type ContentLevelValue = (typeof CONTENT_LEVELS)[number];
 
+export const CONTENT_LEVEL_LABELS: Record<ContentLevelValue, string> = {
+  principiante: "Principiante",
+  intermedio: "Intermedio",
+  avanzado: "Avanzado",
+};
+
 export const CONTENT_GENDERS = ["hombre", "mujer", "todos"] as const;
 export type ContentGenderValue = (typeof CONTENT_GENDERS)[number];
 

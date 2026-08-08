@@ -1,6 +1,8 @@
+import type { ContentLevelValue } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 
 const DISMISSIBLE_TYPES = ["info", "aviso"] as const;
+const PRESET_TYPES = ["rutina", "dieta"] as const;
 
 export type DismissibleContentType = (typeof DISMISSIBLE_TYPES)[number];
 
@@ -10,17 +12,43 @@ export function isDismissibleContentType(
   return (DISMISSIBLE_TYPES as readonly string[]).includes(type);
 }
 
-export function visibleContentWhere(clientId: string) {
+export function isPresetContentType(type: string) {
+  return (PRESET_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Visibilidad en el portal del cliente.
+ * Rutinas/dietas: solo si content.level === trainingLevel del cliente
+ * (sin nivel en el perfil → no ve ninguna; content.level null → no visible a clientes).
+ */
+export function visibleContentWhere(
+  clientId: string,
+  trainingLevel?: ContentLevelValue | null,
+) {
+  const levelGate = trainingLevel
+    ? {
+        OR: [
+          { type: { notIn: [...PRESET_TYPES] } },
+          {
+            type: { in: [...PRESET_TYPES] },
+            level: trainingLevel,
+          },
+        ],
+      }
+    : { type: { notIn: [...PRESET_TYPES] } };
+
   return {
     published: true as const,
     OR: [{ clientId: null }, { clientId }],
     dismissals: { none: { clientId } },
+    AND: [levelGate],
   };
 }
 
 export async function countUnreadContents(
   clientId: string,
   organizationId: string,
+  trainingLevel?: ContentLevelValue | null,
 ) {
   if (!organizationId) {
     throw new Error("organizationId requerido para contenidos del portal");
@@ -28,7 +56,7 @@ export async function countUnreadContents(
   return prisma.content.count({
     where: {
       organizationId,
-      ...visibleContentWhere(clientId),
+      ...visibleContentWhere(clientId, trainingLevel),
       reads: { none: { clientId } },
     },
   });
@@ -53,12 +81,13 @@ export async function dismissClientContent(
   clientId: string,
   contentId: string,
   organizationId: string,
+  trainingLevel?: ContentLevelValue | null,
 ) {
   const content = await prisma.content.findFirst({
     where: {
       id: contentId,
       organizationId,
-      ...visibleContentWhere(clientId),
+      ...visibleContentWhere(clientId, trainingLevel),
     },
     select: {
       id: true,

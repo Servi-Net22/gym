@@ -97,7 +97,7 @@ export async function markContentReadAction(contentId: string) {
     where: {
       id: contentId,
       ...tenantWhere(session),
-      ...visibleContentWhere(session.id),
+      ...visibleContentWhere(session.id, session.trainingLevel),
     },
     select: { id: true, organizationId: true },
   });
@@ -117,6 +117,7 @@ export async function dismissContentAction(contentId: string) {
     session.id,
     contentId,
     session.organizationId,
+    session.trainingLevel,
   );
   if (!result.ok) return;
 

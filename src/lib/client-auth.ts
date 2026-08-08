@@ -31,6 +31,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
       lastName: true,
       active: true,
       portalPinHash: true,
+      trainingLevel: true,
       organizationId: true,
       organization: { select: { slug: true, active: true } },
     },
@@ -56,6 +57,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
     name: `${client.firstName} ${client.lastName}`,
     organizationId: client.organizationId,
     organizationSlug: client.organization.slug,
+    trainingLevel: client.trainingLevel,
   };
 }
 

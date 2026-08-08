@@ -29,7 +29,7 @@ export default async function NuevoContenidoPage() {
         title={trainer ? "Nueva rutina o dieta" : "Publicar contenido"}
         description={
           trainer
-            ? "Plantillas compartidas: los clientes filtran por nivel, género y días."
+            ? "Plantillas compartidas: cada cliente ve solo las de su nivel; pueden filtrar por género y días."
             : "Lo verán en la app del cliente (PWA). Podés enviarlo a todos o a uno solo."
         }
       />

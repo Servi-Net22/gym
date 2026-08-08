@@ -14,6 +14,12 @@ export const planSchema = z.object({
   active: z.coerce.boolean().optional().default(true),
 });
 
+export const trainingLevelSchema = z.enum([
+  "principiante",
+  "intermedio",
+  "avanzado",
+]);
+
 export const clientSchema = z.object({
   firstName: z.string().trim().min(2, "Nombre requerido"),
   lastName: z.string().trim().min(2, "Apellido requerido"),
@@ -33,6 +39,9 @@ export const clientSchema = z.object({
   address: optionalString,
   emergencyContact: optionalString,
   notes: optionalString,
+  trainingLevel: z
+    .union([trainingLevelSchema, z.literal(""), z.undefined()])
+    .transform((v) => (v && v.length > 0 ? v : null)),
   planId: z
     .string()
     .optional()

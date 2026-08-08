@@ -15,6 +15,7 @@ import {
   SubmitButton,
 } from "@/components/Ui";
 import { isAdmin, requireSession } from "@/lib/auth";
+import { CONTENT_LEVEL_LABELS } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import {
   formatCurrency,
@@ -97,6 +98,14 @@ export default async function ClienteDetallePage({
           <dl className="grid gap-3 sm:grid-cols-2">
             <Item label="Email" value={client.email} />
             <Item label="Teléfono" value={client.phone} />
+            <Item
+              label="Nivel"
+              value={
+                client.trainingLevel
+                  ? CONTENT_LEVEL_LABELS[client.trainingLevel]
+                  : "Sin asignar"
+              }
+            />
             <Item
               label="Nacimiento"
               value={formatDate(client.birthDate)}
