@@ -3,6 +3,10 @@ import {
   CLIENT_SESSION_COOKIE,
   readClientSessionToken,
 } from "@/lib/client-session";
+import {
+  CLIENT_PORTAL_RESERVED_SLUGS,
+  clientPortalLogin,
+} from "@/lib/client-portal-paths";
 import { SESSION_COOKIE, readSessionToken } from "@/lib/session";
 
 function isClientLoginPath(pathname: string) {
@@ -11,6 +15,15 @@ function isClientLoginPath(pathname: string) {
   }
   // /mi/[slug]/login
   return /^\/mi\/[^/]+\/login\/?$/.test(pathname);
+}
+
+/** Extrae slug de org desde /mi/{slug}/... (ignora segmentos reservados). */
+function clientPortalSlugFromPath(pathname: string): string | null {
+  const m = pathname.match(/^\/mi\/([^/]+)(?:\/|$)/);
+  if (!m) return null;
+  const segment = m[1];
+  if (CLIENT_PORTAL_RESERVED_SLUGS.has(segment)) return null;
+  return segment;
 }
 
 export async function proxy(request: NextRequest) {
@@ -36,6 +49,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // --- Portal clientes (PWA) ---
+  // Rutas autenticadas: /mi, /mi/contenidos..., /mi/[slug], /mi/[slug]/contenidos...
   if (pathname === "/mi" || pathname.startsWith("/mi/")) {
     if (isClientLoginPath(pathname)) {
       return NextResponse.next();
@@ -47,7 +61,10 @@ export async function proxy(request: NextRequest) {
       : null;
 
     if (!clientSession) {
-      return NextResponse.redirect(new URL("/mi/login", request.url));
+      const slug = clientPortalSlugFromPath(pathname);
+      return NextResponse.redirect(
+        new URL(clientPortalLogin(slug), request.url),
+      );
     }
     return NextResponse.next();
   }

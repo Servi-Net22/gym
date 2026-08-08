@@ -15,6 +15,12 @@ import {
   markContentAsRead,
   visibleContentWhere,
 } from "@/lib/client-contents";
+import {
+  clientPortalContent,
+  clientPortalContents,
+  clientPortalHome,
+  clientPortalLogin,
+} from "@/lib/client-portal-paths";
 import { normalizeOrgSlug } from "@/lib/company";
 import { sessionCookieOptions } from "@/lib/cookie-options";
 import { prisma } from "@/lib/prisma";
@@ -75,7 +81,7 @@ export async function clientLoginAction(
     await sessionCookieOptions(60 * 60 * 24 * 30),
   );
 
-  redirect("/mi");
+  redirect(clientPortalHome(org.slug));
 }
 
 export async function clientLogoutAction() {
@@ -83,11 +89,7 @@ export async function clientLogoutAction() {
   const token = jar.get(CLIENT_SESSION_COOKIE)?.value;
   const session = token ? await readClientSessionToken(token) : null;
   jar.delete(CLIENT_SESSION_COOKIE);
-  redirect(
-    session?.organizationSlug
-      ? `/mi/${session.organizationSlug}/login`
-      : "/mi/login",
-  );
+  redirect(clientPortalLogin(session?.organizationSlug));
 }
 
 /** Marca un contenido como leído (llamar desde el cliente, no durante el render RSC). */
@@ -108,6 +110,10 @@ export async function markContentReadAction(contentId: string) {
   if (!content) return { ok: false as const };
 
   await markContentAsRead(session.id, content.id, content.organizationId);
+  const slug = session.organizationSlug;
+  revalidatePath(clientPortalHome(slug));
+  revalidatePath(clientPortalContents(slug));
+  revalidatePath(clientPortalContent(slug, content.id));
   revalidatePath("/mi");
   revalidatePath("/mi/contenidos");
   revalidatePath(`/mi/contenidos/${content.id}`);
@@ -126,8 +132,12 @@ export async function dismissContentAction(contentId: string) {
   );
   if (!result.ok) return;
 
+  const slug = session.organizationSlug;
+  revalidatePath(clientPortalHome(slug));
+  revalidatePath(clientPortalContents(slug));
+  revalidatePath(clientPortalContent(slug, contentId));
   revalidatePath("/mi");
   revalidatePath("/mi/contenidos");
   revalidatePath(`/mi/contenidos/${contentId}`);
-  redirect("/mi/contenidos");
+  redirect(clientPortalContents(slug));
 }

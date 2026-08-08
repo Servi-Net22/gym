@@ -55,7 +55,7 @@ export function visibleContentWhere(
     published: true as const,
     OR: [{ clientId: null }, { clientId }],
     dismissals: { none: { clientId } },
-    AND: [levelGate, daysGate],
+    AND: [levelGate, daysGate] as Array<Record<string, unknown>>,
   };
 }
 

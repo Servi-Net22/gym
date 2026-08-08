@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { isReservedClientPortalSlug } from "@/lib/client-portal-paths";
 import { normalizeOrgSlug } from "@/lib/company";
 import { prisma } from "@/lib/prisma";
 import { tenantId } from "@/lib/tenant";
@@ -43,6 +44,9 @@ export async function updateOrganizationAction(
   }
 
   const data = parsed.data;
+  if (isReservedClientPortalSlug(data.slug)) {
+    return { error: "Ese slug está reservado por el portal de clientes" };
+  }
   const orgId = tenantId(session);
   const clash = await prisma.organization.findFirst({
     where: {

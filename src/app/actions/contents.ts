@@ -101,6 +101,8 @@ function revalidateContents() {
   revalidatePath("/contenidos");
   revalidatePath("/mi");
   revalidatePath("/mi/contenidos");
+  // Portal con slug: /mi/[slug]/contenidos
+  revalidatePath("/mi", "layout");
 }
 
 type ContentInput = z.infer<typeof contentSchema>;

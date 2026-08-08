@@ -1,6 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { ClientLoginForm } from "@/components/ClientLoginForm";
 import { getClientSession } from "@/lib/client-auth";
+import {
+  clientPortalHome,
+  clientPortalLogin,
+  isReservedClientPortalSlug,
+} from "@/lib/client-portal-paths";
 import { normalizeOrgSlug } from "@/lib/company";
 import { prisma } from "@/lib/prisma";
 
@@ -19,7 +24,7 @@ export default async function ClientOrgLoginPage({
 }) {
   const { slug: raw } = await params;
   const slug = normalizeOrgSlug(raw);
-  if (!slug) notFound();
+  if (!slug || isReservedClientPortalSlug(slug)) notFound();
 
   const org = await prisma.organization.findFirst({
     where: { slug, active: true },
@@ -29,10 +34,12 @@ export default async function ClientOrgLoginPage({
 
   const session = await getClientSession();
   // Misma org → portal; otra org → no reutilizar sesión cross-tenant.
-  if (session?.organizationSlug === org.slug) redirect("/mi");
+  if (session?.organizationSlug === org.slug) {
+    redirect(clientPortalHome(org.slug));
+  }
   if (session && session.organizationSlug !== org.slug) {
     redirect(
-      `/api/auth/clear-client-session?next=${encodeURIComponent(`/mi/${org.slug}/login`)}`,
+      `/api/auth/clear-client-session?next=${encodeURIComponent(clientPortalLogin(org.slug))}`,
     );
   }
 

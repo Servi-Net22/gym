@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { clientLogoutAction } from "@/app/actions/client-portal";
 import { getClientSession } from "@/lib/client-auth";
+import {
+  clientPortalContents,
+  clientPortalHome,
+} from "@/lib/client-portal-paths";
 import { countUnreadContents } from "@/lib/client-contents";
 
 export const metadata: Metadata = {
@@ -37,6 +41,8 @@ export default async function ClientPortalLayout({
       )
     : 0;
 
+  const slug = session?.organizationSlug;
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 pb-24 pt-5">
       <header className="mb-5 flex items-center justify-between gap-3">
@@ -62,14 +68,17 @@ export default async function ClientPortalLayout({
 
       <main className="flex-1">{children}</main>
 
-      {session ? (
+      {session && slug ? (
         <nav className="fixed bottom-0 left-0 right-0 border-t border-[var(--line)] bg-[var(--panel)]/95 backdrop-blur">
           <div className="mx-auto grid max-w-lg grid-cols-3 gap-1 px-2 py-2 text-center text-xs font-semibold">
-            <Link href="/mi" className="rounded-md px-2 py-2 hover:bg-white">
+            <Link
+              href={clientPortalHome(slug)}
+              className="rounded-md px-2 py-2 hover:bg-white"
+            >
               QR / Cuenta
             </Link>
             <Link
-              href="/mi/contenidos"
+              href={clientPortalContents(slug)}
               className="relative rounded-md px-2 py-2 hover:bg-white"
             >
               Novedades
@@ -80,7 +89,7 @@ export default async function ClientPortalLayout({
               ) : null}
             </Link>
             <Link
-              href="/mi/contenidos?tipo=rutina"
+              href={clientPortalContents(slug, { tipo: "rutina" })}
               className="rounded-md px-2 py-2 hover:bg-white"
             >
               Rutinas

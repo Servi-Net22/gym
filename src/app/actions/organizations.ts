@@ -12,6 +12,7 @@ import {
   requireSuperAdmin,
 } from "@/lib/auth";
 import { sessionCookieOptions } from "@/lib/cookie-options";
+import { isReservedClientPortalSlug } from "@/lib/client-portal-paths";
 import { normalizeOrgSlug } from "@/lib/company";
 import { emailOrgAdminCredentials } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
@@ -80,6 +81,10 @@ export async function createOrganizationAction(
   }
 
   const data = parsed.data;
+
+  if (isReservedClientPortalSlug(data.slug)) {
+    return { error: "Ese slug está reservado por el portal de clientes" };
+  }
 
   const slugTaken = await prisma.organization.findUnique({
     where: { slug: data.slug },
@@ -160,6 +165,9 @@ export async function updateOrganizationByIdAction(
   }
 
   const data = parsed.data;
+  if (isReservedClientPortalSlug(data.slug)) {
+    return { error: "Ese slug está reservado por el portal de clientes" };
+  }
   const existing = await prisma.organization.findUnique({
     where: { id },
     select: { id: true },
