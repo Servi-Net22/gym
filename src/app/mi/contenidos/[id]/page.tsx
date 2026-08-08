@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DismissContentButton } from "@/components/DismissContentButton";
 import { MarkContentRead } from "@/components/MarkContentRead";
 import { requireClientSession } from "@/lib/client-auth";
-import { visibleContentWhere } from "@/lib/client-contents";
+import {
+  isDismissibleContentType,
+  visibleContentWhere,
+} from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/utils";
@@ -41,6 +45,7 @@ export default async function ClientContentDetailPage({
   if (!item) notFound();
 
   const unread = item.reads.length === 0;
+  const canDismiss = !unread && isDismissibleContentType(item.type);
 
   return (
     <div className="space-y-4">
@@ -79,6 +84,12 @@ export default async function ClientContentDetailPage({
         <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink)]">
           {item.body}
         </p>
+
+        {canDismiss ? (
+          <div className="mt-5 flex justify-end border-t border-[var(--line)] pt-4">
+            <DismissContentButton contentId={item.id} label="Eliminar" />
+          </div>
+        ) : null}
       </article>
     </div>
   );

@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { DismissContentButton } from "@/components/DismissContentButton";
 import { requireClientSession } from "@/lib/client-auth";
-import { countUnreadContents, visibleContentWhere } from "@/lib/client-contents";
+import {
+  countUnreadContents,
+  isDismissibleContentType,
+  visibleContentWhere,
+} from "@/lib/client-contents";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/utils";
@@ -87,15 +92,19 @@ export default async function ClientContentsPage({
         <ul className="space-y-3">
           {items.map((item) => {
             const unread = item.reads.length === 0;
+            const canDismiss = !unread && isDismissibleContentType(item.type);
             return (
-              <li key={item.id}>
+              <li
+                key={item.id}
+                className={`rounded-xl border ${
+                  unread
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)]/40"
+                    : "border-[var(--line)] bg-white"
+                }`}
+              >
                 <Link
                   href={`/mi/contenidos/${item.id}`}
-                  className={`block rounded-xl border p-4 transition hover:border-[var(--ink)] ${
-                    unread
-                      ? "border-[var(--accent)] bg-[var(--accent-soft)]/40"
-                      : "border-[var(--line)] bg-white"
-                  }`}
+                  className="block p-4 transition hover:opacity-90"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -122,6 +131,11 @@ export default async function ClientContentsPage({
                     Abrir →
                   </p>
                 </Link>
+                {canDismiss ? (
+                  <div className="flex justify-end border-t border-[var(--line)] px-4 py-2">
+                    <DismissContentButton contentId={item.id} label="Quitar" />
+                  </div>
+                ) : null}
               </li>
             );
           })}

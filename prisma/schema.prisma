@@ -28,6 +28,7 @@ model Organization {
   payments         Payment[]
   contents         Content[]
   contentReads     ContentRead[]
+  contentDismissals ContentDismiss[]
   accessLogs       AccessLog[]
   employeeReceipts EmployeeReceipt[]
 }
@@ -76,6 +77,7 @@ model Client {
   accessLogs       AccessLog[]
   contents         Content[]
   contentReads     ContentRead[]
+  contentDismissals ContentDismiss[]
 
   @@unique([organizationId, documentId])
   @@index([organizationId])
@@ -106,6 +108,7 @@ model Content {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   reads          ContentRead[]
+  dismissals     ContentDismiss[]
 
   @@index([organizationId])
 }
@@ -120,6 +123,22 @@ model ContentRead {
   clientId       String
   client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   readAt         DateTime     @default(now())
+
+  @@unique([contentId, clientId])
+  @@index([clientId])
+  @@index([organizationId])
+}
+
+/// Oculta un contenido (info/aviso) en el portal del cliente sin borrarlo para todos
+model ContentDismiss {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contentId      String
+  content        Content      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dismissedAt    DateTime     @default(now())
 
   @@unique([contentId, clientId])
   @@index([clientId])

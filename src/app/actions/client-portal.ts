@@ -11,6 +11,7 @@ import {
 } from "@/lib/client-auth";
 import { readClientSessionToken } from "@/lib/client-session";
 import {
+  dismissClientContent,
   markContentAsRead,
   visibleContentWhere,
 } from "@/lib/client-contents";
@@ -107,4 +108,20 @@ export async function markContentReadAction(contentId: string) {
   revalidatePath("/mi/contenidos");
   revalidatePath(`/mi/contenidos/${content.id}`);
   return { ok: true as const };
+}
+
+/** Quita info/aviso ya leído del portal (dismiss broadcast o borra si era personal). */
+export async function dismissContentAction(contentId: string) {
+  const session = await requireClientSession();
+  const result = await dismissClientContent(
+    session.id,
+    contentId,
+    session.organizationId,
+  );
+  if (!result.ok) return;
+
+  revalidatePath("/mi");
+  revalidatePath("/mi/contenidos");
+  revalidatePath(`/mi/contenidos/${contentId}`);
+  redirect("/mi/contenidos");
 }
