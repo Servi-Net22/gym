@@ -123,11 +123,13 @@ export function TextArea({
   name,
   defaultValue,
   rows = 3,
+  required,
 }: {
   label: string;
   name: string;
   defaultValue?: string | null;
   rows?: number;
+  required?: boolean;
 }) {
   return (
     <label className="block space-y-1.5">
@@ -135,6 +137,7 @@ export function TextArea({
       <textarea
         name={name}
         rows={rows}
+        required={required}
         defaultValue={defaultValue ?? undefined}
         className="w-full rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none ring-[var(--accent)] focus:ring-2"
       />

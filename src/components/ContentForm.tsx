@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import {
   CheckboxField,
   Field,
@@ -9,6 +9,7 @@ import {
   SubmitButton,
   TextArea,
 } from "@/components/Ui";
+import type { ContentFormState } from "@/app/actions/contents";
 import {
   CONTENT_GENDERS,
   CONTENT_LEVELS,
@@ -47,6 +48,8 @@ export type ContentFormValues = {
   videoTitle?: string | null;
 };
 
+const initialState: ContentFormState = {};
+
 export function ContentForm({
   action,
   clients,
@@ -55,13 +58,17 @@ export function ContentForm({
   initial,
   submitLabel,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (
+    prev: ContentFormState,
+    formData: FormData,
+  ) => Promise<ContentFormState>;
   clients: { id: string; label: string }[];
   allowedTypes: readonly string[];
   forceBroadcast: boolean;
   initial?: ContentFormValues;
   submitLabel: string;
 }) {
+  const [state, formAction, pending] = useActionState(action, initialState);
   const typeOptions = ALL_TYPE_OPTIONS.filter((o) =>
     allowedTypes.includes(o.value),
   );
@@ -76,7 +83,7 @@ export function ContentForm({
   );
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={formAction} className="space-y-5">
       <FormGrid>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium text-[var(--ink)]">Tipo</span>
@@ -138,6 +145,7 @@ export function ContentForm({
         label="Contenido"
         name="body"
         rows={8}
+        required
         defaultValue={initial?.body}
       />
 
@@ -199,7 +207,16 @@ export function ContentForm({
         name="published"
         defaultChecked={initial?.published ?? true}
       />
-      <SubmitButton>{submitLabel}</SubmitButton>
+
+      {state.error ? (
+        <p className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900">
+          {state.error}
+        </p>
+      ) : null}
+
+      <SubmitButton disabled={pending}>
+        {pending ? "Guardando…" : submitLabel}
+      </SubmitButton>
     </form>
   );
 }

@@ -14,6 +14,10 @@ import { prisma } from "@/lib/prisma";
 import { tenantId, tenantWhere } from "@/lib/tenant";
 import { isHttpsUrl } from "@/lib/video";
 
+export type ContentFormState = {
+  error?: string;
+};
+
 const contentSchema = z
   .object({
     type: z.enum(["info", "rutina", "dieta", "aviso"]),
@@ -78,8 +82,8 @@ function parseContentForm(formData: FormData) {
 
   return contentSchema.safeParse({
     type: emptyToUndef(formData.get("type")) || "info",
-    title: formData.get("title"),
-    body: formData.get("body"),
+    title: String(formData.get("title") ?? ""),
+    body: String(formData.get("body") ?? ""),
     clientId: emptyToUndef(formData.get("clientId")),
     published: formData.get("published") === "on",
     level: emptyToUndef(formData.get("level")),
@@ -124,17 +128,32 @@ function toContentData(
   };
 }
 
-export async function createContent(formData: FormData) {
+function prismaContentErrorMessage(error: unknown) {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (
+    /column .* does not exist/i.test(msg) ||
+    /ContentLevel|ContentGender|daysPerWeek|videoUrl|videoTitle/i.test(msg) ||
+    /P2022|P2010/i.test(msg)
+  ) {
+    return "La base de datos no tiene los campos nuevos de rutinas/dietas. Ejecutá las migraciones (prisma migrate deploy).";
+  }
+  return "No se pudo guardar el contenido";
+}
+
+export async function createContent(
+  _prev: ContentFormState,
+  formData: FormData,
+): Promise<ContentFormState> {
   const session = await requireSession();
   const orgId = tenantId(session);
   const parsed = parseContentForm(formData);
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
   if (!canManageContentType(session, parsed.data.type)) {
-    throw new Error("No tenés permiso para este tipo de contenido");
+    return { error: "No tenés permiso para este tipo de contenido" };
   }
 
   const forceBroadcast = isTrainer(session);
@@ -143,40 +162,49 @@ export async function createContent(formData: FormData) {
       where: { id: parsed.data.clientId, organizationId: orgId },
       select: { id: true },
     });
-    if (!client) throw new Error("Cliente no encontrado");
+    if (!client) return { error: "Cliente no encontrado" };
   }
 
-  await prisma.content.create({
-    data: {
-      ...toContentData(parsed.data, { forceBroadcast }),
-      organizationId: orgId,
-      createdById: session.id,
-    },
-  });
+  try {
+    await prisma.content.create({
+      data: {
+        ...toContentData(parsed.data, { forceBroadcast }),
+        organizationId: orgId,
+        createdById: session.id,
+      },
+    });
+  } catch (error) {
+    console.error("createContent", error);
+    return { error: prismaContentErrorMessage(error) };
+  }
 
   revalidateContents();
   redirect("/contenidos");
 }
 
-export async function updateContent(id: string, formData: FormData) {
+export async function updateContent(
+  id: string,
+  _prev: ContentFormState,
+  formData: FormData,
+): Promise<ContentFormState> {
   const session = await requireSession();
   const orgId = tenantId(session);
 
   const existing = await prisma.content.findFirst({
     where: { id, ...tenantWhere(session) },
   });
-  if (!existing) throw new Error("Contenido no encontrado");
+  if (!existing) return { error: "Contenido no encontrado" };
   if (!canManageContentType(session, existing.type)) {
-    throw new Error("No tenés permiso para editar este contenido");
+    return { error: "No tenés permiso para editar este contenido" };
   }
 
   const parsed = parseContentForm(formData);
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
   if (!canManageContentType(session, parsed.data.type)) {
-    throw new Error("No tenés permiso para este tipo de contenido");
+    return { error: "No tenés permiso para este tipo de contenido" };
   }
 
   const forceBroadcast = isTrainer(session);
@@ -185,13 +213,18 @@ export async function updateContent(id: string, formData: FormData) {
       where: { id: parsed.data.clientId, organizationId: orgId },
       select: { id: true },
     });
-    if (!client) throw new Error("Cliente no encontrado");
+    if (!client) return { error: "Cliente no encontrado" };
   }
 
-  await prisma.content.update({
-    where: { id },
-    data: toContentData(parsed.data, { forceBroadcast }),
-  });
+  try {
+    await prisma.content.update({
+      where: { id },
+      data: toContentData(parsed.data, { forceBroadcast }),
+    });
+  } catch (error) {
+    console.error("updateContent", error);
+    return { error: prismaContentErrorMessage(error) };
+  }
 
   revalidateContents();
   revalidatePath(`/contenidos/${id}/editar`);
