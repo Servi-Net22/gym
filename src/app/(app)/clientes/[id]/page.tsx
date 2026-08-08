@@ -15,7 +15,7 @@ import {
   SubmitButton,
 } from "@/components/Ui";
 import { isAdmin, requireSession } from "@/lib/auth";
-import { CONTENT_LEVEL_LABELS } from "@/lib/content-permissions";
+import { CONTENT_GENDER_LABELS, CONTENT_LEVEL_LABELS } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import {
   formatCurrency,
@@ -111,6 +111,14 @@ export default async function ClienteDetallePage({
               value={
                 client.daysPerWeek != null
                   ? `${client.daysPerWeek} días`
+                  : "Sin asignar"
+              }
+            />
+            <Item
+              label="Sexo"
+              value={
+                client.gender && client.gender !== "todos"
+                  ? CONTENT_GENDER_LABELS[client.gender]
                   : "Sin asignar"
               }
             />

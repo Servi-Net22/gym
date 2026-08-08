@@ -19,6 +19,16 @@ export const CONTENT_LEVEL_LABELS: Record<ContentLevelValue, string> = {
 export const CONTENT_GENDERS = ["hombre", "mujer", "todos"] as const;
 export type ContentGenderValue = (typeof CONTENT_GENDERS)[number];
 
+/** Sexo del cliente (sin “todos”) */
+export const CLIENT_GENDERS = ["hombre", "mujer"] as const;
+export type ClientGenderValue = (typeof CLIENT_GENDERS)[number];
+
+export const CONTENT_GENDER_LABELS: Record<ContentGenderValue, string> = {
+  hombre: "Hombre",
+  mujer: "Mujer",
+  todos: "Todos",
+};
+
 /** Días/semana válidos para plantillas y perfil de cliente */
 export const CONTENT_DAYS_PER_WEEK = [2, 3, 4, 5, 6] as const;
 export type ContentDaysPerWeek = (typeof CONTENT_DAYS_PER_WEEK)[number];

@@ -18,11 +18,10 @@ export function clientPortalLogin(slug?: string | null) {
 
 export function clientPortalContents(
   slug: string,
-  query?: { tipo?: string; genero?: string },
+  query?: { tipo?: string },
 ) {
   const q = new URLSearchParams();
   if (query?.tipo) q.set("tipo", query.tipo);
-  if (query?.genero) q.set("genero", query.genero);
   const s = q.toString();
   return s ? `/mi/${slug}/contenidos?${s}` : `/mi/${slug}/contenidos`;
 }

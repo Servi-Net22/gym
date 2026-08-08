@@ -11,7 +11,7 @@ import {
   visibleContentWhere,
 } from "@/lib/client-contents";
 import {
-  CONTENT_GENDERS,
+  CONTENT_GENDER_LABELS,
   CONTENT_LEVEL_LABELS,
 } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
@@ -25,12 +25,6 @@ const LABELS: Record<string, string> = {
   aviso: "Aviso",
 };
 
-const GENDER_LABELS: Record<string, string> = {
-  hombre: "Hombre",
-  mujer: "Mujer",
-  todos: "Todos",
-};
-
 function chipClass(active: boolean) {
   return active
     ? "rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1 font-semibold text-[var(--ink)] hover:bg-[var(--accent)]"
@@ -40,11 +34,9 @@ function chipClass(active: boolean) {
 export async function ContentsListScreen({
   session,
   tipo,
-  genero,
 }: {
   session: ClientSession;
   tipo?: string;
-  genero?: string;
 }) {
   const slug = session.organizationSlug;
 
@@ -56,30 +48,20 @@ export async function ContentsListScreen({
   const isPresetView = typeFilter === "rutina" || typeFilter === "dieta";
   const missingLevel = isPresetView && !session.trainingLevel;
   const missingDays = isPresetView && session.daysPerWeek == null;
-  const blockedPreset = missingLevel || missingDays;
-
-  const genderFilter =
-    isPresetView &&
-    !blockedPreset &&
-    genero &&
-    (CONTENT_GENDERS as readonly string[]).includes(genero)
-      ? genero
-      : undefined;
+  const missingGender = isPresetView && !session.gender;
+  const blockedPreset = missingLevel || missingDays || missingGender;
 
   const visibility = visibleContentWhere(
     session.id,
     session.trainingLevel,
     session.daysPerWeek,
+    session.gender,
   );
 
-  const andFilters: Array<Record<string, unknown>> = [
-    ...(visibility.AND ?? []),
-  ];
-  if (genderFilter && genderFilter !== "todos") {
-    andFilters.push({
-      OR: [{ gender: genderFilter }, { gender: "todos" }],
-    });
-  }
+  const profileReady =
+    session.trainingLevel &&
+    session.daysPerWeek != null &&
+    session.gender;
 
   const [items, unreadTotal] = blockedPreset
     ? [
@@ -89,6 +71,7 @@ export async function ContentsListScreen({
           session.organizationId,
           session.trainingLevel,
           session.daysPerWeek,
+          session.gender,
         ),
       ]
     : await Promise.all([
@@ -98,8 +81,8 @@ export async function ContentsListScreen({
             published: visibility.published,
             OR: visibility.OR,
             dismissals: visibility.dismissals,
+            AND: visibility.AND,
             ...(typeFilter ? { type: typeFilter } : {}),
-            ...(andFilters.length > 0 ? { AND: andFilters } : {}),
           },
           orderBy: { publishedAt: "desc" },
           take: 50,
@@ -116,13 +99,9 @@ export async function ContentsListScreen({
           session.organizationId,
           session.trainingLevel,
           session.daysPerWeek,
+          session.gender,
         ),
       ]);
-
-  const base = {
-    tipo: typeFilter,
-    genero: genderFilter,
-  };
 
   return (
     <div className="space-y-4">
@@ -132,9 +111,9 @@ export async function ContentsListScreen({
         </h1>
         <p className="text-sm text-[var(--muted)]">
           {isPresetView
-            ? session.trainingLevel && session.daysPerWeek != null
-              ? `Tu nivel: ${CONTENT_LEVEL_LABELS[session.trainingLevel]} · ${session.daysPerWeek} días/sem. Filtrá por género.`
-              : "Las rutinas y dietas se muestran según tu nivel y días de asistencia."
+            ? profileReady
+              ? `Tu perfil: ${CONTENT_LEVEL_LABELS[session.trainingLevel!]} · ${session.daysPerWeek} días/sem · ${CONTENT_GENDER_LABELS[session.gender!]}.`
+              : "Las rutinas y dietas se muestran según tu nivel, días y sexo."
             : "Info, rutinas y dietas que te envía el gimnasio."}
           {unreadTotal > 0
             ? ` Tenés ${unreadTotal} sin leer.`
@@ -176,36 +155,6 @@ export async function ContentsListScreen({
         ))}
       </div>
 
-      {isPresetView && session.trainingLevel && session.daysPerWeek != null ? (
-        <div className="space-y-3 rounded-xl border border-[var(--line)] bg-white/80 p-3">
-          <div>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Género
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Link
-                href={clientPortalContents(slug, {
-                  ...base,
-                  genero: undefined,
-                })}
-                className={chipClass(!genderFilter)}
-              >
-                Todos
-              </Link>
-              {CONTENT_GENDERS.filter((g) => g !== "todos").map((v) => (
-                <Link
-                  key={v}
-                  href={clientPortalContents(slug, { ...base, genero: v })}
-                  className={chipClass(genderFilter === v)}
-                >
-                  {GENDER_LABELS[v]}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {missingLevel ? (
         <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
           Pedí que te asignen un nivel en recepción
@@ -214,12 +163,16 @@ export async function ContentsListScreen({
         <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
           Pedí que te asignen los días por semana en recepción
         </p>
+      ) : missingGender ? (
+        <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
+          Pedí que te asignen el sexo en recepción
+        </p>
       ) : items.length === 0 ? (
         <p className="rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm text-[var(--muted)]">
           Todavía no hay contenidos
           {typeFilter ? ` de ${LABELS[typeFilter]}` : ""}
-          {isPresetView && genderFilter ? " con esos filtros" : ""}
-          . Cuando el gimnasio publique, van a aparecer acá.
+          {isPresetView ? " para tu perfil" : ""}. Cuando el gimnasio publique,
+          van a aparecer acá.
         </p>
       ) : (
         <ul className="space-y-3">
@@ -258,6 +211,11 @@ export async function ContentsListScreen({
                       {isPreset && item.daysPerWeek != null ? (
                         <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-[10px] font-semibold text-[var(--muted)]">
                           {item.daysPerWeek} días
+                        </span>
+                      ) : null}
+                      {isPreset && item.gender ? (
+                        <span className="rounded bg-[var(--panel)] px-2 py-0.5 text-[10px] font-semibold text-[var(--muted)]">
+                          {CONTENT_GENDER_LABELS[item.gender] ?? item.gender}
                         </span>
                       ) : null}
                     </div>

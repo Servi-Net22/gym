@@ -27,6 +27,7 @@ export async function createClient(formData: FormData) {
     notes: formData.get("notes") || undefined,
     trainingLevel: formData.get("trainingLevel") || undefined,
     daysPerWeek: formData.get("daysPerWeek") || undefined,
+    gender: formData.get("gender") || undefined,
     planId: formData.get("planId") || undefined,
     active: formData.get("active") === "on",
   });
@@ -99,6 +100,7 @@ export async function updateClient(id: string, formData: FormData) {
     notes: formData.get("notes") || undefined,
     trainingLevel: formData.get("trainingLevel") || undefined,
     daysPerWeek: formData.get("daysPerWeek") || undefined,
+    gender: formData.get("gender") || undefined,
     planId: formData.get("planId") || undefined,
     active: formData.get("active") === "on",
   });

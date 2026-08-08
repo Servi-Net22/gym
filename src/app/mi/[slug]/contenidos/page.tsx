@@ -8,10 +8,10 @@ export default async function ClientSlugContentsPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ tipo?: string; genero?: string }>;
+  searchParams: Promise<{ tipo?: string }>;
 }) {
   const { slug: raw } = await params;
-  const { tipo, genero } = await searchParams;
+  const { tipo } = await searchParams;
   const { session } = await requireClientPortalSlug(raw);
-  return <ContentsListScreen session={session} tipo={tipo} genero={genero} />;
+  return <ContentsListScreen session={session} tipo={tipo} />;
 }

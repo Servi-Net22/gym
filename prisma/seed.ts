@@ -145,6 +145,7 @@ async function main() {
       portalPin: "1234",
       trainingLevel: "intermedio",
       daysPerWeek: 3,
+      gender: "mujer",
       emergencyContact: "Carlos Fernández 11-5555-1002",
     },
   });

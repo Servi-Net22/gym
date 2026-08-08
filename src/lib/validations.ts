@@ -26,6 +26,8 @@ export const daysPerWeekSchema = z.coerce
   .min(2, "Días inválidos")
   .max(6, "Días inválidos");
 
+export const clientGenderSchema = z.enum(["hombre", "mujer"]);
+
 export const clientSchema = z.object({
   firstName: z.string().trim().min(2, "Nombre requerido"),
   lastName: z.string().trim().min(2, "Apellido requerido"),
@@ -51,6 +53,9 @@ export const clientSchema = z.object({
   daysPerWeek: z
     .union([daysPerWeekSchema, z.literal(""), z.undefined()])
     .transform((v) => (typeof v === "number" && !Number.isNaN(v) ? v : null)),
+  gender: z
+    .union([clientGenderSchema, z.literal(""), z.undefined()])
+    .transform((v) => (v && v.length > 0 ? v : null)),
   planId: z
     .string()
     .optional()

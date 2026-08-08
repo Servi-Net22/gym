@@ -44,6 +44,7 @@ export async function ContentDetailScreen({
         session.id,
         session.trainingLevel,
         session.daysPerWeek,
+        session.gender,
       ),
     },
     include: {

@@ -103,6 +103,7 @@ export async function markContentReadAction(contentId: string) {
         session.id,
         session.trainingLevel,
         session.daysPerWeek,
+        session.gender,
       ),
     },
     select: { id: true, organizationId: true },
@@ -129,6 +130,7 @@ export async function dismissContentAction(contentId: string) {
     session.organizationId,
     session.trainingLevel,
     session.daysPerWeek,
+    session.gender,
   );
   if (!result.ok) return;
 

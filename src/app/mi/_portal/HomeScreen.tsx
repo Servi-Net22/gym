@@ -20,6 +20,7 @@ export async function HomeScreen({ session }: { session: ClientSession }) {
       session.organizationId,
       session.trainingLevel,
       session.daysPerWeek,
+      session.gender,
     ),
   ]);
 

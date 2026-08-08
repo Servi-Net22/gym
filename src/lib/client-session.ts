@@ -1,3 +1,7 @@
+import type {
+  ClientGenderValue,
+  ContentLevelValue,
+} from "@/lib/content-permissions";
 import { SignJWT, jwtVerify } from "jose";
 
 export const CLIENT_SESSION_COOKIE = "gymflow_client_session";
@@ -9,9 +13,11 @@ export type ClientSession = {
   organizationId: string;
   organizationSlug: string;
   /** Nivel de entrenamiento; null = sin asignar (no ve rutinas/dietas) */
-  trainingLevel: "principiante" | "intermedio" | "avanzado" | null;
+  trainingLevel: ContentLevelValue | null;
   /** Días/semana de asistencia; null = sin asignar (no ve rutinas/dietas) */
   daysPerWeek: number | null;
+  /** Sexo; null = sin asignar (no ve rutinas/dietas) */
+  gender: ClientGenderValue | null;
 };
 
 const SESSION_TTL = "30d";
@@ -25,9 +31,10 @@ function getSecret() {
 }
 
 export async function createClientSessionToken(
-  client: Omit<ClientSession, "trainingLevel" | "daysPerWeek"> & {
+  client: Omit<ClientSession, "trainingLevel" | "daysPerWeek" | "gender"> & {
     trainingLevel?: ClientSession["trainingLevel"];
     daysPerWeek?: ClientSession["daysPerWeek"];
+    gender?: ClientSession["gender"];
   },
 ) {
   return new SignJWT({
@@ -46,7 +53,10 @@ export async function createClientSessionToken(
 
 export async function readClientSessionToken(
   token: string,
-): Promise<Omit<ClientSession, "trainingLevel" | "daysPerWeek"> | null> {
+): Promise<Omit<
+  ClientSession,
+  "trainingLevel" | "daysPerWeek" | "gender"
+> | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (!payload.sub || payload.kind !== "client") return null;

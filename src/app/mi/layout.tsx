@@ -38,6 +38,7 @@ export default async function ClientPortalLayout({
         session.organizationId,
         session.trainingLevel,
         session.daysPerWeek,
+        session.gender,
       )
     : 0;
 

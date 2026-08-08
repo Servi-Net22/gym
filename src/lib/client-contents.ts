@@ -1,4 +1,7 @@
-import type { ContentLevelValue } from "@/lib/content-permissions";
+import type {
+  ClientGenderValue,
+  ContentLevelValue,
+} from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 
 const DISMISSIBLE_TYPES = ["info", "aviso"] as const;
@@ -16,15 +19,22 @@ export function isPresetContentType(type: string) {
   return (PRESET_TYPES as readonly string[]).includes(type);
 }
 
+export type ClientContentProfile = {
+  trainingLevel?: ContentLevelValue | null;
+  daysPerWeek?: number | null;
+  gender?: ClientGenderValue | null;
+};
+
 /**
  * Visibilidad en el portal del cliente.
- * Rutinas/dietas: content.level === trainingLevel y content.daysPerWeek === daysPerWeek
- * (sin nivel o sin días en el perfil → no ve ninguna; campos null en content → no visible).
+ * Rutinas/dietas: level + daysPerWeek + gender (content.gender = cliente o "todos").
+ * Sin perfil completo → no ve plantillas.
  */
 export function visibleContentWhere(
   clientId: string,
   trainingLevel?: ContentLevelValue | null,
   daysPerWeek?: number | null,
+  gender?: ClientGenderValue | null,
 ) {
   const levelGate = trainingLevel
     ? {
@@ -51,11 +61,23 @@ export function visibleContentWhere(
         }
       : { type: { notIn: [...PRESET_TYPES] } };
 
+  const genderGate = gender
+    ? {
+        OR: [
+          { type: { notIn: [...PRESET_TYPES] } },
+          {
+            type: { in: [...PRESET_TYPES] },
+            OR: [{ gender }, { gender: "todos" as const }],
+          },
+        ],
+      }
+    : { type: { notIn: [...PRESET_TYPES] } };
+
   return {
     published: true as const,
     OR: [{ clientId: null }, { clientId }],
     dismissals: { none: { clientId } },
-    AND: [levelGate, daysGate] as Array<Record<string, unknown>>,
+    AND: [levelGate, daysGate, genderGate] as Array<Record<string, unknown>>,
   };
 }
 
@@ -64,6 +86,7 @@ export async function countUnreadContents(
   organizationId: string,
   trainingLevel?: ContentLevelValue | null,
   daysPerWeek?: number | null,
+  gender?: ClientGenderValue | null,
 ) {
   if (!organizationId) {
     throw new Error("organizationId requerido para contenidos del portal");
@@ -71,7 +94,7 @@ export async function countUnreadContents(
   return prisma.content.count({
     where: {
       organizationId,
-      ...visibleContentWhere(clientId, trainingLevel, daysPerWeek),
+      ...visibleContentWhere(clientId, trainingLevel, daysPerWeek, gender),
     },
   });
 }
@@ -97,12 +120,13 @@ export async function dismissClientContent(
   organizationId: string,
   trainingLevel?: ContentLevelValue | null,
   daysPerWeek?: number | null,
+  gender?: ClientGenderValue | null,
 ) {
   const content = await prisma.content.findFirst({
     where: {
       id: contentId,
       organizationId,
-      ...visibleContentWhere(clientId, trainingLevel, daysPerWeek),
+      ...visibleContentWhere(clientId, trainingLevel, daysPerWeek, gender),
     },
     select: {
       id: true,
@@ -125,7 +149,6 @@ export async function dismissClientContent(
     return { ok: false as const, reason: "unread" as const };
   }
 
-  // Personal (dirigido a este cliente): hard-delete. Broadcast: dismiss por cliente.
   if (content.clientId === clientId) {
     await prisma.content.delete({ where: { id: content.id } });
     return { ok: true as const, mode: "deleted" as const };

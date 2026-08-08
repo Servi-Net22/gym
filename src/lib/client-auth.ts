@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { ClientGenderValue } from "@/lib/content-permissions";
+import { CLIENT_GENDERS } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import {
   CLIENT_SESSION_COOKIE,
@@ -13,6 +15,15 @@ export {
   createClientSessionToken,
   type ClientSession,
 };
+
+function asClientGender(
+  value: string | null | undefined,
+): ClientGenderValue | null {
+  if (value && (CLIENT_GENDERS as readonly string[]).includes(value)) {
+    return value as ClientGenderValue;
+  }
+  return null;
+}
 
 export async function getClientSession(): Promise<ClientSession | null> {
   const jar = await cookies();
@@ -33,6 +44,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
       portalPinHash: true,
       trainingLevel: true,
       daysPerWeek: true,
+      gender: true,
       organizationId: true,
       organization: { select: { slug: true, active: true } },
     },
@@ -60,6 +72,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
     organizationSlug: client.organization.slug,
     trainingLevel: client.trainingLevel,
     daysPerWeek: client.daysPerWeek,
+    gender: asClientGender(client.gender),
   };
 }
 

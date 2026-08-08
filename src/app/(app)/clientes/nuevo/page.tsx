@@ -12,6 +12,8 @@ import {
 import { requireAdmin } from "@/lib/auth";
 import {
   CONTENT_DAYS_PER_WEEK,
+  CONTENT_GENDER_LABELS,
+  CLIENT_GENDERS,
   CONTENT_LEVEL_LABELS,
   CONTENT_LEVELS,
 } from "@/lib/content-permissions";
@@ -70,6 +72,16 @@ export default async function NuevoClientePage() {
               options={CONTENT_DAYS_PER_WEEK.map((n) => ({
                 value: String(n),
                 label: `${n} días`,
+              }))}
+            />
+            <SelectField
+              label="Sexo"
+              name="gender"
+              allowEmpty
+              emptyLabel="Sin asignar"
+              options={CLIENT_GENDERS.map((v) => ({
+                value: v,
+                label: CONTENT_GENDER_LABELS[v],
               }))}
             />
             <Field

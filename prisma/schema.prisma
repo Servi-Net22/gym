@@ -72,6 +72,8 @@ model Client {
   trainingLevel    ContentLevel?
   /// Días por semana que asiste (filtra rutinas/dietas en el PWA). null = sin asignar
   daysPerWeek      Int?
+  /// Sexo (filtra rutinas/dietas en el PWA). Solo hombre/mujer; null = sin asignar
+  gender           ContentGender?
   membershipEndsAt DateTime?
   planId           String?
   plan             Plan?        @relation(fields: [planId], references: [id])
