@@ -55,8 +55,8 @@ export async function loginAction(
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, await sessionCookieOptions(60 * 60 * 8));
 
-  // No await: el redirect no debe esperar al reporte
-  void reportarAccesoServiNet({ email: user.email, nombre: user.name, app: "gym" });
+  // await antes del redirect: si va en void, Next corta el fetch al tirar redirect()
+  await reportarAccesoServiNet({ email: user.email, nombre: user.name, app: "gym" });
 
   redirect("/");
 }
