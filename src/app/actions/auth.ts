@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, createSessionToken, verifyPassword } from "@/lib/auth";
 import { sessionCookieOptions } from "@/lib/cookie-options";
+import { reportarAccesoServiNet } from "@/lib/report-acceso-servi-net";
 
 export type LoginState = {
   error?: string;
@@ -53,6 +54,9 @@ export async function loginAction(
 
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, await sessionCookieOptions(60 * 60 * 8));
+
+  // No await: el redirect no debe esperar al reporte
+  void reportarAccesoServiNet({ email: user.email, nombre: user.name, app: "gym" });
 
   redirect("/");
 }
