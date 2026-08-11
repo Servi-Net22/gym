@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, createSessionToken, verifyPassword } from "@/lib/auth";
@@ -62,12 +63,18 @@ export async function loginAction(
         ? "Administrador"
         : (user.employee?.role?.trim() || "Empleado");
 
-  // await antes del redirect: si va en void, Next corta el fetch al tirar redirect()
-  await reportarAccesoServiNet({
+  const reportPayload = {
     email: user.email,
     nombre: user.name,
     cargo: cargoLabel,
-    app: "gym",
+    app: "gym" as const,
+  };
+
+  // await: asegura el POST antes del redirect (Next puede cortar fetches en void).
+  // after: red de seguridad si el runtime corta al lanzar redirect().
+  await reportarAccesoServiNet(reportPayload);
+  after(() => {
+    void reportarAccesoServiNet(reportPayload);
   });
 
   redirect("/");
