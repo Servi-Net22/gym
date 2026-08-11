@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/app/actions/auth";
 import { contentsNavLabel, isTrainer } from "@/lib/content-permissions";
+import { canManagePayments } from "@/lib/staff-permissions";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/session";
 
@@ -12,6 +13,8 @@ const links: {
   label: string;
   roles: Array<SessionUser["role"]>;
   contents?: boolean;
+  /** Si true, solo admin o recepción/administración (no entrenador). */
+  frontDesk?: boolean;
 }[] = [
   { href: "/", label: "Panel", roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"] },
   {
@@ -33,7 +36,8 @@ const links: {
   {
     href: "/pagos",
     label: "Pagos",
-    roles: ["ADMIN", "SUPERADMIN"],
+    roles: ["ADMIN", "EMPLOYEE", "SUPERADMIN"],
+    frontDesk: true,
   },
   {
     href: "/contenidos",
@@ -64,6 +68,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
   const visibleLinks = links
     .filter((link) => link.roles.includes(user.role))
+    .filter((link) => !link.frontDesk || canManagePayments(user))
     .map((link) =>
       link.contents ? { ...link, label: contentsNavLabel(user) } : link,
     );

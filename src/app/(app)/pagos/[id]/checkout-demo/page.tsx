@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requirePaymentOps } from "@/lib/auth";
 import { confirmPaymentRecord } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, fullName } from "@/lib/utils";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 async function simulateApprove(paymentId: string) {
   "use server";
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const payment = await prisma.payment.findFirst({
     where: { id: paymentId, organizationId: session.organizationId },
   });
@@ -28,7 +28,7 @@ export default async function CheckoutDemoPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const { id } = await params;
   const payment = await prisma.payment.findFirst({
     where: { id, organizationId: session.organizationId },

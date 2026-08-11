@@ -2,6 +2,8 @@
 export async function reportarAccesoServiNet(opts: {
   email: string;
   nombre?: string | null;
+  /** Cargo o rol legible (ej. Administración, Entrenador, Administrador). */
+  cargo?: string | null;
   app?: string;
 }): Promise<boolean> {
   const url = process.env.SERVI_NET_ACCESOS_URL?.trim();
@@ -15,6 +17,14 @@ export async function reportarAccesoServiNet(opts: {
     return false;
   }
 
+  const nombreBase = (opts.nombre || "").trim();
+  const cargo = (opts.cargo || "").trim();
+  // El panel muestra "Nombre"; si viene vacío parece que no hubo login útil.
+  const nombre =
+    nombreBase && cargo
+      ? `${nombreBase} · ${cargo}`
+      : nombreBase || cargo || opts.email;
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -25,7 +35,8 @@ export async function reportarAccesoServiNet(opts: {
       body: JSON.stringify({
         app,
         email: opts.email,
-        nombre: opts.nombre || undefined,
+        nombre,
+        ...(cargo ? { cargo } : {}),
       }),
       signal: AbortSignal.timeout(5000),
     });

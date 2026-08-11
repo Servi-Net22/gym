@@ -7,6 +7,7 @@ import {
   CLIENT_PORTAL_RESERVED_SLUGS,
   clientPortalLogin,
 } from "@/lib/client-portal-paths";
+import { isTrainerCargo } from "@/lib/content-permissions";
 import { SESSION_COOKIE, readSessionToken } from "@/lib/session";
 
 function isClientLoginPath(pathname: string) {
@@ -91,16 +92,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/?error=sin-permiso", request.url));
   }
 
-  // Pagos, mutación de clientes y edición/toggle de planes: solo ADMIN / SUPERADMIN.
   if (staffSession.role === "EMPLOYEE") {
-    const employeeBlocked =
-      pathname === "/pagos" ||
-      pathname.startsWith("/pagos/") ||
-      pathname === "/clientes/nuevo" ||
-      pathname.startsWith("/clientes/nuevo/") ||
-      /^\/clientes\/[^/]+\/editar\/?$/.test(pathname) ||
-      /^\/planes\/[^/]+\/editar\/?$/.test(pathname);
-    if (employeeBlocked) {
+    const isTrainerEmployee = isTrainerCargo(staffSession.employeeRole);
+    // Edición de planes: solo admin.
+    const planEditBlocked = /^\/planes\/[^/]+\/editar\/?$/.test(pathname);
+    // Clientes (alta/edición) y pagos: recepción/administración sí; entrenador no.
+    const frontDeskBlocked =
+      isTrainerEmployee &&
+      (pathname === "/pagos" ||
+        pathname.startsWith("/pagos/") ||
+        pathname === "/clientes/nuevo" ||
+        pathname.startsWith("/clientes/nuevo/") ||
+        /^\/clientes\/[^/]+\/editar\/?$/.test(pathname));
+
+    if (planEditBlocked || frontDeskBlocked) {
       return NextResponse.redirect(new URL("/?error=sin-permiso", request.url));
     }
   }

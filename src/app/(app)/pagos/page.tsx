@@ -5,7 +5,7 @@ import {
   paymentSourceLabel,
   paymentStatusLabel,
 } from "@/lib/payment-methods";
-import { requireAdmin } from "@/lib/auth";
+import { requirePaymentOps } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import {
@@ -18,7 +18,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function PagosPage() {
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const payments = await prisma.payment.findMany({
     where: tenantWhere(session),
     orderBy: { createdAt: "desc" },

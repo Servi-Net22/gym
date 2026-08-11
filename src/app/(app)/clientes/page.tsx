@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, ButtonLink, DataTable } from "@/components/Ui";
 import { StatusBadge } from "@/components/StatusBadge";
-import { isAdmin, requireSession } from "@/lib/auth";
+import { canManageClients, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import { formatDate, fullName } from "@/lib/utils";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
   const session = await requireSession();
-  const canManage = isAdmin(session);
+  const canManage = canManageClients(session);
   const clients = await prisma.client.findMany({
     where: tenantWhere(session),
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],

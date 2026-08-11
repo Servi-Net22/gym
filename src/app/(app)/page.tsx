@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, Panel } from "@/components/Ui";
 import { AccessBadge, StatusBadge } from "@/components/StatusBadge";
-import { isAdmin, requireSession } from "@/lib/auth";
+import { canManagePayments, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantWhere } from "@/lib/tenant";
 import {
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const session = await requireSession();
-  const canManagePayments = isAdmin(session);
+  const canPay = canManagePayments(session);
   const scope = tenantWhere(session);
 
   const [clients, employees, plans, payments, recentAccess, overdue] =
@@ -23,7 +23,7 @@ export default async function HomePage() {
       prisma.client.count({ where: { ...scope, active: true } }),
       prisma.employee.count({ where: { ...scope, active: true } }),
       prisma.plan.count({ where: { ...scope, active: true } }),
-      canManagePayments
+      canPay
         ? prisma.payment.aggregate({
             where: scope,
             _sum: { amount: true },
@@ -70,7 +70,7 @@ export default async function HomePage() {
         <Stat label="Clientes activos" value={String(clients)} />
         <Stat label="Cuentas al día" value={String(currentClients)} />
         <Stat label="Empleados" value={String(employees)} />
-        {canManagePayments ? (
+        {canPay ? (
           <Stat
             label="Ingresos registrados"
             value={formatCurrency(payments._sum.amount ?? 0)}
@@ -127,7 +127,7 @@ export default async function HomePage() {
             <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
               Cuentas vencidas
             </h2>
-            {canManagePayments ? (
+            {canPay ? (
               <Link
                 href="/pagos/nuevo"
                 className="text-sm font-medium underline"

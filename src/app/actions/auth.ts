@@ -55,8 +55,20 @@ export async function loginAction(
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, await sessionCookieOptions(60 * 60 * 8));
 
+  const cargoLabel =
+    user.role === "SUPERADMIN"
+      ? "Superadmin"
+      : user.role === "ADMIN"
+        ? "Administrador"
+        : (user.employee?.role?.trim() || "Empleado");
+
   // await antes del redirect: si va en void, Next corta el fetch al tirar redirect()
-  await reportarAccesoServiNet({ email: user.email, nombre: user.name, app: "gym" });
+  await reportarAccesoServiNet({
+    email: user.email,
+    nombre: user.name,
+    cargo: cargoLabel,
+    app: "gym",
+  });
 
   redirect("/");
 }

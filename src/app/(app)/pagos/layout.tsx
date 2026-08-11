@@ -1,10 +1,10 @@
-import { requireAdmin } from "@/lib/auth";
+import { requirePaymentOps } from "@/lib/auth";
 
 export default async function PagosLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireAdmin();
+  await requirePaymentOps();
   return children;
 }

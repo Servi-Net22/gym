@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { requireAdmin } from "@/lib/auth";
+import { requirePaymentOps } from "@/lib/auth";
 import {
   emailMercadoPagoCheckout,
   emailPaymentConfirmed,
@@ -57,7 +57,7 @@ async function notifyConfirmedPayment(paymentId: string, registeredByName?: stri
 
 /** Registrar un pago ya recibido (efectivo / transferencia / MP cobrado en caja). */
 export async function registerManualPayment(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const parsed = parsePaymentForm(formData);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
@@ -99,7 +99,7 @@ export async function registerManualPayment(formData: FormData) {
  * - Efectivo: se registra confirmado (cobro en mostrador)
  */
 export async function startAutomaticCharge(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const parsed = parsePaymentForm(formData);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
@@ -217,7 +217,7 @@ export async function startAutomaticCharge(formData: FormData) {
 }
 
 export async function confirmPendingPayment(paymentId: string) {
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const owned = await prisma.payment.findFirst({
     where: { id: paymentId, ...tenantWhere(session) },
     select: { id: true },
@@ -232,7 +232,7 @@ export async function confirmPendingPayment(paymentId: string) {
 }
 
 export async function cancelPendingPayment(paymentId: string) {
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const owned = await prisma.payment.findFirst({
     where: { id: paymentId, ...tenantWhere(session) },
     select: { id: true },
@@ -265,7 +265,7 @@ export async function cancelPendingPayment(paymentId: string) {
 
 /** Solo administrador: anula un pago confirmado (o pendiente) con motivo. */
 export async function voidPayment(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requirePaymentOps();
   const paymentId = String(formData.get("paymentId") ?? "");
   const reason = String(formData.get("voidReason") ?? "");
 

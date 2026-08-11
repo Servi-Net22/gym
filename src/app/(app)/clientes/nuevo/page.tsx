@@ -9,7 +9,7 @@ import {
   SubmitButton,
   TextArea,
 } from "@/components/Ui";
-import { requireAdmin } from "@/lib/auth";
+import { requireClientOps } from "@/lib/auth";
 import {
   CONTENT_DAYS_PER_WEEK,
   CONTENT_GENDER_LABELS,
@@ -22,7 +22,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function NuevoClientePage() {
-  const session = await requireAdmin();
+  const session = await requireClientOps();
   const plans = await prisma.plan.findMany({
     where: { organizationId: session.organizationId, active: true },
     orderBy: { price: "asc" },

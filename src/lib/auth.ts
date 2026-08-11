@@ -8,6 +8,11 @@ import {
   readSessionToken,
   type SessionUser,
 } from "@/lib/session";
+import {
+  canManageClients,
+  canManagePayments,
+  isAdmin as isAdminRole,
+} from "@/lib/staff-permissions";
 
 export {
   SESSION_COOKIE,
@@ -15,6 +20,7 @@ export {
   readSessionToken,
   type SessionUser,
 };
+export { canManageClients, canManagePayments } from "@/lib/staff-permissions";
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
@@ -111,6 +117,24 @@ export async function requireAdmin(): Promise<SessionUser> {
   return session;
 }
 
+/** Admin o empleado de recepción/administración (no entrenador). */
+export async function requireClientOps(): Promise<SessionUser> {
+  const session = await requireSession();
+  if (!canManageClients(session)) {
+    redirect("/?error=sin-permiso");
+  }
+  return session;
+}
+
+/** Mismo alcance que clientes: cobranzas y registro de pagos. */
+export async function requirePaymentOps(): Promise<SessionUser> {
+  const session = await requireSession();
+  if (!canManagePayments(session)) {
+    redirect("/?error=sin-permiso");
+  }
+  return session;
+}
+
 export async function requireSuperAdmin(): Promise<SessionUser> {
   const session = await requireSession();
   if (session.role !== "SUPERADMIN") {
@@ -121,7 +145,7 @@ export async function requireSuperAdmin(): Promise<SessionUser> {
 
 /** ADMIN o SUPERADMIN del tenant (no EMPLOYEE). */
 export function isAdmin(user: SessionUser | null | undefined) {
-  return user?.role === "ADMIN" || user?.role === "SUPERADMIN";
+  return isAdminRole(user);
 }
 
 export function canViewSalaries(user: SessionUser | null | undefined) {

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { requireAdmin } from "@/lib/auth";
+import { requireClientOps } from "@/lib/auth";
 import { generatePortalPin } from "@/lib/client-auth";
 import { emailNewClient } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +13,7 @@ import { generateQrToken } from "@/lib/utils";
 import { clientSchema } from "@/lib/validations";
 
 export async function createClient(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireClientOps();
   const orgId = tenantId(session);
   const parsed = clientSchema.safeParse({
     firstName: formData.get("firstName"),
@@ -86,7 +86,7 @@ export async function createClient(formData: FormData) {
 }
 
 export async function updateClient(id: string, formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireClientOps();
   const orgId = session.organizationId;
   const parsed = clientSchema.safeParse({
     firstName: formData.get("firstName"),
@@ -138,7 +138,7 @@ export async function updateClient(id: string, formData: FormData) {
 }
 
 export async function regenerateClientQr(id: string) {
-  const session = await requireAdmin();
+  const session = await requireClientOps();
   const result = await prisma.client.updateMany({
     where: { id, organizationId: session.organizationId },
     data: { qrToken: generateQrToken() },
@@ -148,7 +148,7 @@ export async function regenerateClientQr(id: string) {
 }
 
 export async function resetClientPortalPin(id: string) {
-  const session = await requireAdmin();
+  const session = await requireClientOps();
   const pin = generatePortalPin();
   const client = await prisma.client.findFirst({
     where: { id, organizationId: session.organizationId },
@@ -181,7 +181,7 @@ export async function resetClientPortalPin(id: string) {
 }
 
 export async function toggleClient(id: string) {
-  const session = await requireAdmin();
+  const session = await requireClientOps();
   const client = await prisma.client.findFirst({
     where: { id, organizationId: session.organizationId },
   });

@@ -10,7 +10,7 @@ import {
   SubmitButton,
   TextArea,
 } from "@/components/Ui";
-import { requireAdmin } from "@/lib/auth";
+import { requireClientOps } from "@/lib/auth";
 import {
   CONTENT_DAYS_PER_WEEK,
   CONTENT_GENDER_LABELS,
@@ -28,7 +28,7 @@ export default async function EditarClientePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requireAdmin();
+  const session = await requireClientOps();
   const { id } = await params;
   const orgId = session.organizationId;
   const [client, plans] = await Promise.all([

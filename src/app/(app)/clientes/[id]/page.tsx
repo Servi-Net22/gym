@@ -14,7 +14,7 @@ import {
   Panel,
   SubmitButton,
 } from "@/components/Ui";
-import { isAdmin, requireSession } from "@/lib/auth";
+import { canManageClients, requireSession } from "@/lib/auth";
 import { CONTENT_GENDER_LABELS, CONTENT_LEVEL_LABELS } from "@/lib/content-permissions";
 import { prisma } from "@/lib/prisma";
 import {
@@ -34,7 +34,7 @@ export default async function ClienteDetallePage({
   searchParams: Promise<{ pin?: string }>;
 }) {
   const session = await requireSession();
-  const canManage = isAdmin(session);
+  const canManage = canManageClients(session);
   const { id } = await params;
   const { pin } = await searchParams;
   const client = await prisma.client.findFirst({
